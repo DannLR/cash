@@ -1,0 +1,114 @@
+{
+  "project_name": "RitualOS / Pulse - Expo Go Web Adaptation",
+  "concept": "A high-performance daily ritual and focus flow manager adapted from a mobile Expo Go app into a fluid, responsive desktop & mobile web experience. Bridges native touch patterns (bottom navigation, swipe gestures, quick status toggles, mobile simulator mode) with rich desktop capabilities (multi-column bento analytics, drag-and-drop ritual creation, ambient audio soundscapes, streak tracking, and FastAPI persistence).",
+  "identity_and_theme": {
+    "archetype": "Organic Performance Pro (Tactical Minimalism & Swiss Precision)",
+    "tone": "Focused, tactile, serene, highly productive, premium",
+    "theme_support": "Light and Dark mode toggle with persistent local storage / system preference",
+    "mobile_web_bridge_feature": "Interactive Expo Simulator Toggle - allows users to preview the exact mobile layout side-by-side with full desktop layout"
+  },
+  "colors": {
+    "dark_mode": {
+      "background": "#0C0E12",
+      "surface_card": "#141820",
+      "surface_elevated": "#1C222E",
+      "border": "rgba(255, 255, 255, 0.08)",
+      "border_hover": "rgba(255, 255, 255, 0.18)",
+      "primary_accent": "#6366F1",
+      "primary_accent_hover": "#4F46E5",
+      "secondary_accent": "#10B981",
+      "amber_highlight": "#F59E0B",
+      "rose_highlight": "#F43F5E",
+      "text_primary": "#F9FAFB",
+      "text_secondary": "#9CA3AF",
+      "text_muted": "#6B7280"
+    },
+    "light_mode": {
+      "background": "#F8FAFC",
+      "surface_card": "#FFFFFF",
+      "surface_elevated": "#F1F5F9",
+      "border": "rgba(15, 23, 42, 0.08)",
+      "border_hover": "rgba(15, 23, 42, 0.18)",
+      "primary_accent": "#4F46E5",
+      "primary_accent_hover": "#4338CA",
+      "secondary_accent": "#059669",
+      "amber_highlight": "#D97706",
+      "rose_highlight": "#E11D48",
+      "text_primary": "#0F172A",
+      "text_secondary": "#475569",
+      "text_muted": "#94A3B8"
+    }
+  },
+  "typography": {
+    "font_family_heading": "Geist Variable, sans-serif",
+    "font_family_body": "Geist Variable, sans-serif",
+    "font_family_mono": "Geist Mono Variable, monospace",
+    "scale": {
+      "hero_title": "text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight",
+      "section_title": "text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight",
+      "card_title": "text-base sm:text-lg font-medium tracking-tight",
+      "body": "text-sm sm:text-base leading-relaxed text-muted-foreground",
+      "caption": "text-xs font-mono tracking-wider uppercase text-muted-foreground"
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "px-4 sm:px-8 lg:px-12 py-6 sm:py-10",
+    "bento_grid": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8",
+    "card_padding": "p-5 sm:p-6 lg:p-8",
+    "hero_span": "col-span-1 md:col-span-8 lg:col-span-8",
+    "side_span": "col-span-1 md:col-span-8 lg:col-span-4",
+    "full_span": "col-span-full",
+    "alignment": "Left-aligned content flow with optical padding; clear grid borders and glassmorphism subtle headers."
+  },
+  "key_functionalities": {
+    "1_responsive_adaptation": "Fluid conversion between Mobile Expo view (bottom tab navigation, compact cards, swipe actions) and Desktop Web view (sidebar navigation, wide bento analytics, multi-column dashboard).",
+    "2_demo_data_and_backend": "FastAPI endpoints delivering initial demonstration rituals, habits, categories, completion history, and focus timer logs with full REST API supporting GET, POST, PUT, DELETE.",
+    "3_creation_flow": "Interactive Quick Create modal & full detail creation flow for new daily rituals (Title, Category, Target Duration, Frequency, Priority, Emoji/Icon, Energy Tag).",
+    "4_persistence_and_refresh": "Real-time state refresh via TanStack React Query / local reactive state with automated refetching, instant optimist UI toggles, and toast notifications (Sonner).",
+    "5_expo_simulator_mode": "Dedicated toggle button allowing users to view the web app wrapped in an interactive iPhone/Expo Go frame preview to directly contrast Mobile vs Desktop layout UX.",
+    "6_focus_soundscapes_timer": "Built-in pomodoro/focus timer with ambient soundscape toggles (Lo-Fi Cafe, Deep Rain, White Noise, Forest Drift) for deep work sessions."
+  },
+  "image_urls": {
+    "hero_workspace": "https://images.unsplash.com/photo-1510519138101-570d1dca3d66?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwyfHxtaW5pbWFsaXN0JTIwcHJvZHVjdGl2aXR5JTIwd29ya3NwYWNlJTIwZGFyayUyMGFlc3RoZXRpY3xlbnwwfHx8fDE3ODgzOTIyMzJ8MA&ixlib=rb-4.1.0&q=85",
+    "focus_journal": "https://images.unsplash.com/photo-1562878274-ad7a29ea8cdd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwzfHxmb2N1cyUyMGhhYml0JTIwY29mZmVlJTIwY3JlYXRpdmUlMjBqb3VybmFsfGVufDB8fHx8MTc4ODM5MjIzOHww&ixlib=rb-4.1.0&q=85",
+    "coffee_ritual": "https://images.unsplash.com/photo-1543233604-3baca4d35513?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwxfHxmb2N1cyUyMGhhYml0JTIwY29mZmVlJTIwY3JlYXRpdmUlMjBqb3VybmFsfGVufDB8fHx8MTc4ODM5MjIzOHww&ixlib=rb-4.1.0&q=85",
+    "desk_setup": "https://images.unsplash.com/photo-1650661926447-9efb2610f64c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwcHJvZHVjdGl2aXR5JTIwd29ya3NwYWNlJTIwZGFyayUyMGFlc3RoZXRpY3xlbnwwfHx8fDE3ODgzOTIyMzJ8MA&ixlib=rb-4.1.0&q=85"
+  },
+  "component_hierarchy": [
+    "Navbar (Logo, Navigation Tabs, Expo Mobile Simulator Toggle, Theme Switcher, Create Ritual CTA)",
+    "ExpoMobileBanner (Context banner highlighting Mobile App to Responsive Web transformation status)",
+    "BentoHeaderSummary (Daily Completion %, Active Streaks, Total Focus Minutes, Mood/Energy Index)",
+    "MainGridContainer (Bento layout split between Rituals List/Board and Focus/Analytics widgets)",
+    "RitualFilters (Category tabs: All, Morning, Deep Work, Health, Craft; Status filter; Search input)",
+    "RitualCard (Card item with completion checkbox, category badge, streak count, quick edit, sub-tasks)",
+    "CreateRitualDialog (Shadcn Dialog form with inputs for title, category, target time, frequency, energy level)",
+    "FocusTimerWidget (Interactive timer countdown with audio soundscape player)",
+    "AnalyticsWidget (Recharts visual bar/area charts showing weekly ritual consistency)",
+    "ExpoMobileSimulatorModal (Modal/Drawer rendering mobile viewport emulator of the Expo Go interface)"
+  ],
+  "testing_attributes": {
+    "convention": "kebab-case data-testid on all interactive buttons, inputs, tabs, cards, and modal triggers",
+    "examples": [
+      "data-testid=\"nav-brand-logo\"",
+      "data-testid=\"nav-theme-toggle\"",
+      "data-testid=\"nav-mobile-simulator-toggle\"",
+      "data-testid=\"nav-create-ritual-button\"",
+      "data-testid=\"ritual-filter-all\"",
+      "data-testid=\"ritual-filter-morning\"",
+      "data-testid=\"ritual-card-item-{id}\"",
+      "data-testid=\"ritual-checkbox-{id}\"",
+      "data-testid=\"create-ritual-modal-form\"",
+      "data-testid=\"create-ritual-submit-button\"",
+      "data-testid=\"focus-timer-play-button\"",
+      "data-testid=\"analytics-period-select\""
+    ]
+  },
+  "instructions_to_main_agent": [
+    "1. Ensure backend FastAPI (server.py & routers) exposes full endpoints for /api/rituals (GET, POST, PUT /:id/toggle, DELETE) with rich seed demo data in Portuguese & English.",
+    "2. Customize UI using Tailwind CSS variables and Lucide icons without relying on plain default Vercel styles.",
+    "3. Implement micro-interactions using framer-motion/motion for card completions, modal entries, and tab transitions.",
+    "4. Ensure proper contrast compliance (APCA / WCAG AA) for dark and light modes.",
+    "5. Make sure every interactive button and container has data-testid attached.",
+    "6. Include the Expo Mobile View Simulator toggle so the user can see how their Expo Go mobile layout translates directly to a responsive web SaaS."
+  ]
+}
