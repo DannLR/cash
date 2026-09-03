@@ -4,6 +4,7 @@ import FinanceShell from "@/components/finance/FinanceShell";
 import Accounts from "@/pages/Accounts";
 import CardDetails from "@/pages/CardDetails";
 import Cards from "@/pages/Cards";
+import EditAccount from "@/pages/EditAccount";
 import Home from "@/pages/Home";
 import Insights from "@/pages/Insights";
 import Login from "@/pages/Login";
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/planejamento" element={<Planning />} />
           <Route path="/contas" element={<Accounts />} />
+          <Route path="/contas/:accountId/editar" element={<EditAccount />} />
           <Route path="/cartoes" element={<Cards />} />
           <Route path="/cartoes/:cardId" element={<CardDetails />} />
           <Route path="/insights" element={<Insights />} />

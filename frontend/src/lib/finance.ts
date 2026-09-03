@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 
 export type FinanceType = "entrada" | "saida";
 export type PaymentMethod = "pix" | "debito" | "dinheiro" | "credito" | "boleto";
@@ -37,6 +37,35 @@ export interface Card {
   limit: number;
   due_day: number | null;
   closing_day: number | null;
+}
+
+export interface RecurringAccount {
+  id: string;
+  type: RecurringType;
+  name: string;
+  value: number;
+  due_day: number;
+  status: "ativa" | "inativa";
+  category_name: string | null;
+  card_id: string | null;
+  installment_count: number | null;
+  start_date: string | null;
+  series_id: string | null;
+  end_reference: string | null;
+  installment_offset: number;
+}
+
+export interface RecurringUpdate {
+  reference: string;
+  name: string;
+  value: number;
+  due_day: number;
+  category_name: string | null;
+}
+
+export interface RecurringUpdateResponse {
+  message: string;
+  account: RecurringAccount;
 }
 
 export interface MonthlyAccountItem {
@@ -182,5 +211,8 @@ export const getCategories = () => apiGet<Category[]>("/finance/categories");
 export const getCards = () => apiGet<Card[]>("/finance/cards");
 export const getCardDetails = (id: string, reference: string) => apiGet<CardDetailsResponse>(buildReferencePath(`/finance/cards/${id}`, reference));
 export const getGoals = () => apiGet<Goal[]>("/finance/goals");
+export const getRecurringAccount = (id: string, reference: string) => apiGet<RecurringAccount>(buildReferencePath(`/finance/recurring/${id}`, reference));
+export const updateRecurringAccount = (id: string, payload: RecurringUpdate) => apiPatch<RecurringUpdateResponse>(`/finance/recurring/${id}`, payload);
+export const deleteRecurringAccount = (id: string, reference: string) => apiDelete<MutationResponse>(buildReferencePath(`/finance/recurring/${id}`, reference));
 export const createTransaction = (payload: TransactionCreate) => apiPost<MutationResponse>("/finance/transactions", payload);
 export const togglePayment = (id: string, reference: string, paid: boolean) => apiPatch<PaymentResponse>(`/finance/payments/${id}`, { reference, paid });

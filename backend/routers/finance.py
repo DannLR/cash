@@ -27,6 +27,8 @@ from models.finance import (
     PeriodResponse,
     RecurringAccount,
     RecurringCreate,
+    RecurringUpdate,
+    RecurringUpdateResponse,
     SummaryResponse,
     Transaction,
     TransactionCreate,
@@ -94,11 +96,14 @@ def visible_in_month(item: dict[str, Any], reference: str) -> bool:
     start = item.get("start_date")
     if start and start[:7] > reference:
         return False
+    end_reference = item.get("end_reference")
+    if end_reference and reference > end_reference:
+        return False
     count = item.get("installment_count")
     if item.get("type") == "parcela" and count and start:
         start_month = date.fromisoformat(start[:10]).replace(day=1)
         current_month = date.fromisoformat(f"{reference}-01")
-        elapsed = (current_month.year - start_month.year) * 12 + current_month.month - start_month.month
+        elapsed = (current_month.year - start_month.year) * 12 + current_month.month - start_month.month + item.get("installment_offset", 0)
         if elapsed >= count:
             return False
     return True
@@ -184,7 +189,7 @@ def installment_label(item: dict[str, Any], reference: str) -> str | None:
         return None
     start_month = date.fromisoformat(start[:10]).replace(day=1)
     current_month = date.fromisoformat(f"{reference}-01")
-    number = (current_month.year - start_month.year) * 12 + current_month.month - start_month.month + 1
+    number = (current_month.year - start_month.year) * 12 + current_month.month - start_month.month + item.get("installment_offset", 0) + 1
     return f"{number}/{count}"
 
 
@@ -362,6 +367,68 @@ async def create_recurring(payload: RecurringCreate) -> MutationResponse:
     recurring = RecurringAccount(**payload.model_dump())
     await db.finance_recurring.insert_one(recurring.model_dump())
     return MutationResponse(message="Conta recorrente salva", recurring_id=recurring.id)
+
+
+@router.get("/recurring/{recurring_id}", response_model=RecurringAccount)
+async def get_recurring_account(recurring_id: str, reference: str | None = Query(default=None)) -> RecurringAccount:
+    await ensure_seed()
+    ref = parse_reference(reference)
+    row = await db.finance_recurring.find_one({"id": recurring_id})
+    if not row or not visible_in_month(row, ref):
+        raise HTTPException(status_code=404, detail="Conta não encontrada neste mês")
+    return RecurringAccount(**clean(row))
+
+
+@router.patch("/recurring/{recurring_id}", response_model=RecurringUpdateResponse)
+async def update_recurring_account(recurring_id: str, payload: RecurringUpdate) -> RecurringUpdateResponse:
+    await ensure_seed()
+    ref = parse_reference(payload.reference)
+    row = await db.finance_recurring.find_one({"id": recurring_id})
+    if not row or not visible_in_month(row, ref):
+        raise HTTPException(status_code=404, detail="Conta não encontrada neste mês")
+    current = clean(row)
+    previous_end = previous_reference(ref)
+    offset = current.get("installment_offset", 0)
+    start = current.get("start_date")
+    if current.get("type") == "parcela" and start:
+        start_month = date.fromisoformat(start[:10]).replace(day=1)
+        effective_month = date.fromisoformat(f"{ref}-01")
+        offset += max(0, (effective_month.year - start_month.year) * 12 + effective_month.month - start_month.month)
+
+    await db.finance_recurring.update_one({"id": recurring_id}, {"$set": {"end_reference": previous_end}})
+    new_id = str(uuid.uuid4())
+    updated = RecurringAccount(
+        **{
+            **current,
+            "id": new_id,
+            "series_id": current.get("series_id") or current["id"],
+            "end_reference": None,
+            "start_date": f"{ref}-01",
+            "installment_offset": offset,
+            "name": payload.name,
+            "value": payload.value,
+            "due_day": payload.due_day,
+            "category_name": payload.category_name,
+        }
+    )
+    await db.finance_recurring.insert_one(updated.model_dump())
+    await db.finance_payments.update_many(
+        {"recurring_id": recurring_id, "reference": {"$gte": ref}},
+        {"$set": {"recurring_id": new_id}},
+    )
+    return RecurringUpdateResponse(message="Conta atualizada a partir do mês selecionado", account=updated)
+
+
+@router.delete("/recurring/{recurring_id}", response_model=MutationResponse)
+async def delete_recurring_account(recurring_id: str, reference: str = Query(...)) -> MutationResponse:
+    await ensure_seed()
+    ref = parse_reference(reference)
+    row = await db.finance_recurring.find_one({"id": recurring_id})
+    if not row or not visible_in_month(row, ref):
+        raise HTTPException(status_code=404, detail="Conta não encontrada neste mês")
+    await db.finance_recurring.update_one({"id": recurring_id}, {"$set": {"end_reference": previous_reference(ref)}})
+    await db.finance_payments.delete_many({"recurring_id": recurring_id, "reference": {"$gte": ref}})
+    return MutationResponse(message="Conta excluída deste mês em diante", recurring_id=recurring_id)
 
 
 @router.patch("/payments/{recurring_id}", response_model=PaymentResponse)

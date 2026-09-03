@@ -69,6 +69,9 @@ class RecurringAccount(BaseModel):
     card_id: str | None = None
     installment_count: int | None = None
     start_date: str | None = None
+    series_id: str | None = None
+    end_reference: str | None = None
+    installment_offset: int = 0
 
 
 class MonthlyAccountItem(BaseModel):
@@ -190,6 +193,19 @@ class RecurringCreate(BaseModel):
     card_id: str | None = None
     installment_count: int | None = Field(default=None, ge=1, le=24)
     start_date: str | None = None
+
+
+class RecurringUpdate(BaseModel):
+    reference: str
+    name: str = Field(min_length=1, max_length=80)
+    value: float = Field(gt=0)
+    due_day: int = Field(ge=1, le=31)
+    category_name: str | None = None
+
+
+class RecurringUpdateResponse(BaseModel):
+    message: str
+    account: RecurringAccount
 
 
 class MutationResponse(BaseModel):

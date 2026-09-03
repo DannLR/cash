@@ -19,6 +19,7 @@ As entidades principais são `Category`, `Transaction`, `RecurringAccount`, `Pay
 - Login exclusivo do proprietário por e-mail e senha
 - Lista de cartões e detalhe de fatura com limite, vencimento, próxima fatura, parcelas e assinaturas
 - Um único bloco mensal na Home lista contas fixas, parcelas e assinaturas com checkbox pago/não pago
+- Cada conta recorrente abre uma edição; alterações e exclusões valem do mês selecionado em diante, preservando o histórico
 
 ## API
 
@@ -29,6 +30,7 @@ As entidades principais são `Category`, `Transaction`, `RecurringAccount`, `Pay
 - `PATCH /api/finance/payments/{id}`
 - `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/auth/logout`
 - `GET /api/finance/cards/{id}?reference=YYYY-MM`
+- `GET/PATCH/DELETE /api/finance/recurring/{id}` para edição versionada por mês
 
 ## Auth
 

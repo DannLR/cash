@@ -18,6 +18,7 @@ Entidades principais: `Category`, `Transaction`, `RecurringAccount`, `Payment`, 
 - Marcar contas fixas como pagas por mês.
 - Abrir o cartão Nubank e consultar contas da fatura atual e próxima.
 - Marcar contas fixas, parcelas e assinaturas no único bloco mensal da Home, incluindo pagas e não pagas.
+- Abrir cada conta para editar ou excluir a partir do mês selecionado, sem alterar meses anteriores.
 
 ## API
 
