@@ -18,6 +18,7 @@ As entidades principais são `Category`, `Transaction`, `RecurringAccount`, `Pay
 - Comparação de categorias e sugestões de economia
 - Login exclusivo do proprietário por e-mail e senha
 - Lista de cartões e detalhe de fatura com limite, vencimento, próxima fatura, parcelas e assinaturas
+- Marcação mensal de pagamento para contas fixas, parcelas e assinaturas, consolidada na Home
 
 ## API
 

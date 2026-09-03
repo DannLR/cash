@@ -39,6 +39,15 @@ export interface Card {
   closing_day: number | null;
 }
 
+export interface PaidAccountItem {
+  id: string;
+  name: string;
+  type: RecurringType;
+  value: number;
+  due_day: number;
+  card_id: string | null;
+}
+
 export interface SummaryResponse {
   reference: string;
   saldo_disponivel: number;
@@ -47,6 +56,7 @@ export interface SummaryResponse {
   previsto: number;
   saldo_livre_real: number;
   contas_pagas: number;
+  paid_accounts: PaidAccountItem[];
   total_metas: number;
   reserva_metas_mensal: number;
   alerta_previsao: number;
@@ -58,6 +68,7 @@ export interface UpcomingItem {
   name: string;
   type: RecurringType;
   value: number;
+  paid: boolean;
 }
 
 export interface FixedAccountItem {
