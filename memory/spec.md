@@ -2,7 +2,7 @@
 
 ## What it does
 
-cash é a adaptação web responsiva do app Expo Go financeiro enviado pelo usuário. A primeira fase reproduz o dashboard mensal, onboarding, navegação por período e lançamento manual.
+cash é a adaptação web responsiva do app Expo Go financeiro enviado pelo usuário. Inclui login do proprietário, dashboard mensal, cartões, onboarding, navegação por período e lançamento manual.
 
 ## Data model
 
@@ -16,6 +16,7 @@ Entidades principais: `Category`, `Transaction`, `RecurringAccount`, `Payment`, 
 - Usar “Novo lançamento” para salvar entrada, gasto, conta fixa ou compra no crédito.
 - Consultar Planejamento, Contas e Insights.
 - Marcar contas fixas como pagas por mês.
+- Abrir o cartão Nubank e consultar contas da fatura atual e próxima.
 
 ## API
 
@@ -31,7 +32,7 @@ No authentication is required in this demo adaptation.
 
 ## Auth
 
-Não há autenticação na primeira fase; o app mantém o modelo de usuário único do Expo original.
+Conta única do proprietário por e-mail e senha, sem cadastro público.
 
 ## Limites intencionais
 

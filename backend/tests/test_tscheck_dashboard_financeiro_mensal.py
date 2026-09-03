@@ -3,7 +3,8 @@
 import pytest
 
 
-def test_summary_has_all_dashboard_fields(client):
+def test_summary_has_all_dashboard_fields(auth_client):
+    client = auth_client
     period = client.get("/finance/period")
     assert period.status_code == 200, period.text
     reference = period.json()["reference"]
@@ -26,7 +27,7 @@ def test_summary_has_all_dashboard_fields(client):
     assert data["reference"] == reference
 
 
-def test_summary_rejects_unknown_reference_gracefully(client):
+def test_summary_rejects_unknown_reference_gracefully(auth_client):
     # An invalid reference should not 500 the server.
-    resp = client.get("/finance/summary", params={"reference": "not-a-month"})
+    resp = auth_client.get("/finance/summary", params={"reference": "not-a-month"})
     assert resp.status_code in (200, 400, 404, 422), resp.text

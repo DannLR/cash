@@ -3,13 +3,16 @@ from datetime import date, timedelta
 from typing import Any
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from lib.auth import require_user
 from lib.dates import today_iso
 from lib.db import db
 from models.finance import (
     AccountsResponse,
     Card,
+    CardAccountItem,
+    CardDetailsResponse,
     CardSummary,
     Category,
     ExpenseItem,
@@ -30,7 +33,7 @@ from models.finance import (
 )
 
 
-router = APIRouter(prefix="/finance", tags=["finance"])
+router = APIRouter(prefix="/finance", tags=["finance"], dependencies=[Depends(require_user)])
 
 DEFAULT_CATEGORIES = [
     ("cat-salario", "Salário", "entrada", "wallet", "#16803C"),
@@ -69,6 +72,12 @@ def previous_reference(reference: str) -> str:
     first = date.fromisoformat(f"{reference}-01")
     previous = first - timedelta(days=1)
     return previous.strftime("%Y-%m")
+
+
+def following_reference(reference: str) -> str:
+    first = date.fromisoformat(f"{reference}-01")
+    following = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return following.strftime("%Y-%m")
 
 
 def month_label(reference: str) -> str:
@@ -165,6 +174,61 @@ async def get_cards() -> list[Card]:
     await ensure_seed()
     rows = await db.finance_cards.find().sort("nickname", 1).to_list(1000)
     return [Card(**clean(row)) for row in rows]
+
+
+def installment_label(item: dict[str, Any], reference: str) -> str | None:
+    count = item.get("installment_count")
+    start = item.get("start_date")
+    if item.get("type") != "parcela" or not count or not start:
+        return None
+    start_month = date.fromisoformat(start[:10]).replace(day=1)
+    current_month = date.fromisoformat(f"{reference}-01")
+    number = (current_month.year - start_month.year) * 12 + current_month.month - start_month.month + 1
+    return f"{number}/{count}"
+
+
+async def card_accounts(card_id: str, reference: str) -> list[CardAccountItem]:
+    recurring = [row for row in await get_recurring(reference) if row.get("card_id") == card_id]
+    paid_ids = await get_payment_ids(reference)
+    items = [CardAccountItem(
+        id=row["id"], name=row["name"], type=row["type"], value=row["value"],
+        due_day=row.get("due_day"), installment_label=installment_label(row, reference),
+        paid=row["id"] in paid_ids,
+    ) for row in recurring]
+    transactions = [clean(row) for row in await db.finance_transactions.find({
+        "card_id": card_id,
+        "payment_method": "credito",
+        "date": {"$regex": f"^{reference}"},
+    }).sort("date", -1).to_list(1000)]
+    items.extend(CardAccountItem(
+        id=row["id"], name=row["category_name"], type="compra", value=row["value"],
+        due_day=int(row["date"][8:10]),
+    ) for row in transactions)
+    return sorted(items, key=lambda item: (item.due_day or 99, item.name))
+
+
+@router.get("/cards/{card_id}", response_model=CardDetailsResponse)
+async def get_card_details(card_id: str, reference: str | None = Query(default=None)) -> CardDetailsResponse:
+    await ensure_seed()
+    ref = parse_reference(reference)
+    card_row = await db.finance_cards.find_one({"id": card_id})
+    if not card_row:
+        raise HTTPException(status_code=404, detail="Cartão não encontrado")
+    card = Card(**clean(card_row))
+    accounts = await card_accounts(card_id, ref)
+    next_ref = following_reference(ref)
+    next_accounts = await card_accounts(card_id, next_ref)
+    current_invoice = sum(item.value for item in accounts)
+    next_invoice = sum(item.value for item in next_accounts)
+    return CardDetailsResponse(
+        reference=ref,
+        next_reference=next_ref,
+        card=card,
+        current_invoice=current_invoice,
+        next_invoice=next_invoice,
+        available_limit=max(card.limit - current_invoice, 0),
+        accounts=accounts,
+    )
 
 
 @router.get("/goals", response_model=list[Goal])

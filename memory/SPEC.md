@@ -2,7 +2,7 @@
 
 ## O que faz
 
-Adaptação web responsiva do app Expo Go financeiro enviado pelo usuário. A primeira fase reproduz onboarding, dashboard mensal, navegação por período, planejamento, contas, insights e lançamento manual.
+Adaptação web responsiva do app Expo Go financeiro enviado pelo usuário. Reproduz onboarding, dashboard mensal, navegação por período, planejamento, contas, cartões, insights e lançamento manual.
 
 ## Modelo de dados
 
@@ -16,6 +16,8 @@ As entidades principais são `Category`, `Transaction`, `RecurringAccount`, `Pay
 - Planejamento de contas recorrentes
 - Contas fixas com pagamento mensal
 - Comparação de categorias e sugestões de economia
+- Login exclusivo do proprietário por e-mail e senha
+- Lista de cartões e detalhe de fatura com limite, vencimento, próxima fatura, parcelas e assinaturas
 
 ## API
 
@@ -24,10 +26,12 @@ As entidades principais são `Category`, `Transaction`, `RecurringAccount`, `Pay
 - `GET /api/finance/categories`, `/cards`, `/goals`
 - `POST /api/finance/transactions`
 - `PATCH /api/finance/payments/{id}`
+- `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/auth/logout`
+- `GET /api/finance/cards/{id}?reference=YYYY-MM`
 
 ## Auth
 
-Não há autenticação na primeira fase; mantém-se o modelo de usuário único do Expo original.
+Conta única do proprietário, sem cadastro público. Sessão mantida por cookie HTTP-only e senha armazenada como hash PBKDF2.
 
 ## Limites conhecidos
 

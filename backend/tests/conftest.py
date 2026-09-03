@@ -45,3 +45,19 @@ async def aclient():
 
 
 # --- app-specific fixtures below this line ---
+
+OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "proprietario@cash.app")
+OWNER_PASSWORD = os.environ.get("OWNER_PASSWORD", "Cash@2026!")
+
+
+@pytest.fixture
+def auth_client():
+    """Authenticated sync httpx client — logs in as the owner and keeps the session cookie.
+
+    Financial endpoints require a valid `cash_session` cookie; use this fixture for any
+    test exercising /finance/* routes instead of the bare `client` fixture.
+    """
+    with httpx.Client(base_url=API_URL, timeout=30.0) as c:
+        resp = c.post("/auth/login", json={"email": OWNER_EMAIL, "password": OWNER_PASSWORD})
+        assert resp.status_code == 200, f"owner login failed: {resp.status_code} {resp.text[:200]}"
+        yield c

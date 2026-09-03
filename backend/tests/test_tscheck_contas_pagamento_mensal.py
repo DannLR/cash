@@ -4,7 +4,8 @@ via PATCH /finance/payments/{id} is reflected for the selected month."""
 import pytest
 
 
-def test_toggle_payment_marks_and_unmarks_fixed_account(client):
+def test_toggle_payment_marks_and_unmarks_fixed_account(auth_client):
+    client = auth_client
     period = client.get("/finance/period")
     assert period.status_code == 200, period.text
     reference = period.json()["reference"]
@@ -40,7 +41,8 @@ def test_toggle_payment_marks_and_unmarks_fixed_account(client):
     assert restored_entry["paid"] == original_paid
 
 
-def test_toggle_payment_rejects_unknown_recurring_id(client):
+def test_toggle_payment_rejects_unknown_recurring_id(auth_client):
+    client = auth_client
     resp = client.patch(
         "/finance/payments/tscheck-unknown-recurring-id",
         json={"reference": "2026-09", "paid": True},

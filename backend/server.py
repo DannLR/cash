@@ -12,6 +12,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 from lib.db import client, db
+from routers.auth import router as auth_router
 from routers.finance import router as finance_router
 
 
@@ -50,6 +51,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Resource routers remain behind the single /api boundary.
+api_router.include_router(auth_router)
 api_router.include_router(finance_router)
 
 # Include the router in the main app last so every route is served.

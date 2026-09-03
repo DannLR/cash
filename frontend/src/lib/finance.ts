@@ -82,6 +82,26 @@ export interface CardSummary extends Card {
   total: number;
 }
 
+export interface CardAccountItem {
+  id: string;
+  name: string;
+  type: "compra" | "parcela" | "assinatura";
+  value: number;
+  due_day: number | null;
+  installment_label: string | null;
+  paid: boolean;
+}
+
+export interface CardDetailsResponse {
+  reference: string;
+  next_reference: string;
+  card: Card;
+  current_invoice: number;
+  next_invoice: number;
+  available_limit: number;
+  accounts: CardAccountItem[];
+}
+
 export interface AccountsResponse {
   reference: string;
   fixed: FixedAccountItem[];
@@ -148,6 +168,7 @@ export const getAccounts = (reference: string) => apiGet<AccountsResponse>(build
 export const getInsights = (reference: string) => apiGet<InsightsResponse>(buildReferencePath("/finance/insights", reference));
 export const getCategories = () => apiGet<Category[]>("/finance/categories");
 export const getCards = () => apiGet<Card[]>("/finance/cards");
+export const getCardDetails = (id: string, reference: string) => apiGet<CardDetailsResponse>(buildReferencePath(`/finance/cards/${id}`, reference));
 export const getGoals = () => apiGet<Goal[]>("/finance/goals");
 export const createTransaction = (payload: TransactionCreate) => apiPost<MutationResponse>("/finance/transactions", payload);
 export const togglePayment = (id: string, reference: string, paid: boolean) => apiPatch<PaymentResponse>(`/finance/payments/${id}`, { reference, paid });

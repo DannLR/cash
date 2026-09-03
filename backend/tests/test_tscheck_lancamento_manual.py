@@ -6,7 +6,8 @@ import uuid
 import pytest
 
 
-def test_create_transaction_updates_month_totals(client):
+def test_create_transaction_updates_month_totals(auth_client):
+    client = auth_client
     period = client.get("/finance/period")
     assert period.status_code == 200, period.text
     reference = period.json()["reference"]
@@ -46,7 +47,7 @@ def test_create_transaction_updates_month_totals(client):
     assert any(abs(v - unique_value) < 0.001 for v in names), names
 
 
-def test_create_transaction_rejects_invalid_value(client):
+def test_create_transaction_rejects_invalid_value(auth_client):
     payload = {
         "type": "saida",
         "value": -10,  # exclusiveMinimum 0 -> should be rejected
@@ -54,5 +55,5 @@ def test_create_transaction_rejects_invalid_value(client):
         "date": "2026-09-20",
         "payment_method": "pix",
     }
-    resp = client.post("/finance/transactions", json=payload)
+    resp = auth_client.post("/finance/transactions", json=payload)
     assert resp.status_code == 422, resp.text

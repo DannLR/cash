@@ -114,6 +114,26 @@ class CardSummary(Card):
     total: float = 0
 
 
+class CardAccountItem(BaseModel):
+    id: str
+    name: str
+    type: Literal["compra", "parcela", "assinatura"]
+    value: float
+    due_day: int | None = None
+    installment_label: str | None = None
+    paid: bool = False
+
+
+class CardDetailsResponse(BaseModel):
+    reference: str
+    next_reference: str
+    card: Card
+    current_invoice: float
+    next_invoice: float
+    available_limit: float
+    accounts: list[CardAccountItem]
+
+
 class AccountsResponse(BaseModel):
     reference: str
     fixed: list[FixedAccountItem]
