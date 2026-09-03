@@ -71,13 +71,14 @@ class RecurringAccount(BaseModel):
     start_date: str | None = None
 
 
-class PaidAccountItem(BaseModel):
+class MonthlyAccountItem(BaseModel):
     id: str
     name: str
     type: RecurringType
     value: float
     due_day: int
     card_id: str | None = None
+    paid: bool = False
 
 
 class SummaryResponse(BaseModel):
@@ -88,7 +89,7 @@ class SummaryResponse(BaseModel):
     previsto: float
     saldo_livre_real: float
     contas_pagas: float
-    paid_accounts: list[PaidAccountItem]
+    monthly_accounts: list[MonthlyAccountItem]
     total_metas: float
     reserva_metas_mensal: float
     alerta_previsao: float

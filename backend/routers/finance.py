@@ -21,7 +21,7 @@ from models.finance import (
     InsightCategory,
     InsightsResponse,
     MutationResponse,
-    PaidAccountItem,
+    MonthlyAccountItem,
     PaymentResponse,
     PaymentToggle,
     PeriodResponse,
@@ -250,10 +250,10 @@ async def get_summary(reference: str | None = Query(default=None)) -> SummaryRes
     expected = sum(row["value"] for row in recurring)
     paid_ids = await get_payment_ids(ref)
     paid = sum(row["value"] for row in recurring if row["id"] in paid_ids)
-    paid_accounts = [PaidAccountItem(
+    monthly_accounts = [MonthlyAccountItem(
         id=row["id"], name=row["name"], type=row["type"], value=row["value"],
-        due_day=row["due_day"], card_id=row.get("card_id"),
-    ) for row in sorted(recurring, key=lambda item: item.get("due_day", 0)) if row["id"] in paid_ids]
+        due_day=row["due_day"], card_id=row.get("card_id"), paid=row["id"] in paid_ids,
+    ) for row in sorted(recurring, key=lambda item: item.get("due_day", 0))]
     goals = [clean(row) for row in await db.finance_goals.find().to_list(1000)]
     total_goals = sum(row["saved_value"] for row in goals)
     monthly_goal_reserve = sum(row["monthly_contribution"] for row in goals)
@@ -262,7 +262,7 @@ async def get_summary(reference: str | None = Query(default=None)) -> SummaryRes
     return SummaryResponse(
         reference=ref, saldo_disponivel=available, entrou=entered, gasto=spent,
         previsto=expected, saldo_livre_real=free_real, contas_pagas=paid,
-        paid_accounts=paid_accounts,
+        monthly_accounts=monthly_accounts,
         total_metas=total_goals, reserva_metas_mensal=monthly_goal_reserve,
         alerta_previsao=max(free_real - 440, 0),
     )
