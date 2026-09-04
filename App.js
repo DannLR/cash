@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTema } from './context/ThemeContext';
 import { MonthProvider } from './context/MonthContext';
 import { useWindowDimensions } from 'react-native';
 import {
@@ -44,6 +44,23 @@ import { reagendarLembretes } from './utils/notifications';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// Carrega as mesmas fontes que o site original usava (Space Grotesk pros
+// títulos, DM Sans pro corpo do texto) e aplica como fonte padrão — só na
+// web, pra não mexer na aparência do app nativo (que usa a fonte do sistema).
+if (Platform.OS === 'web') {
+  const linkExistente = document.getElementById('fontes-cash');
+  if (!linkExistente) {
+    const link = document.createElement('link');
+    link.id = 'fontes-cash';
+    link.rel = 'stylesheet';
+    link.href =
+      'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap';
+    document.head.appendChild(link);
+  }
+  Text.defaultProps = Text.defaultProps || {};
+  Text.defaultProps.style = [{ fontFamily: 'DM Sans, sans-serif' }, Text.defaultProps.style];
+}
+
 // Referência de navegação — permite navegar a partir de fora da árvore
 // de telas, como o botão dentro do menu do modal "+" abaixo.
 export const navigationRef = createNavigationContainerRef();
@@ -78,16 +95,21 @@ const ICONES_ABAS = {
 };
 
 function SidebarTabBar({ state, descriptors, navigation }) {
+  const { modoEscuro, alternarTema, cores } = useTema();
+
   return (
-    <View style={styles.sidebarWeb}>
+    <View style={[styles.sidebarWeb, { backgroundColor: cores.card, borderRightColor: cores.borda }]}>
       <View style={styles.sidebarLogoRow}>
         <View style={styles.sidebarLogoBox}>
           <Ionicons name="trending-up" size={18} color="#fff" />
         </View>
-        <View>
-          <Text style={styles.sidebarLogoTexto}>cash</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.sidebarLogoTexto, { color: cores.texto }]}>cash</Text>
           <Text style={styles.sidebarLogoCaption}>CONTROLE FINANCEIRO</Text>
         </View>
+        <TouchableOpacity onPress={alternarTema} style={styles.sidebarThemeBotao} activeOpacity={0.7}>
+          <Ionicons name={modoEscuro ? 'sunny-outline' : 'moon-outline'} size={17} color={cores.textoSecundario} />
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.sidebarSectionLabel}>SEU DINHEIRO</Text>
@@ -115,8 +137,8 @@ function SidebarTabBar({ state, descriptors, navigation }) {
               activeOpacity={0.7}
               style={[styles.sidebarItemWeb, focado && styles.sidebarItemWebAtivo]}
             >
-              {icone && <Ionicons name={icone} size={18} color={focado ? '#fff' : '#5B6472'} />}
-              <Text style={[styles.sidebarItemTexto, focado && styles.sidebarItemTextoAtivo]}>
+              {icone && <Ionicons name={icone} size={18} color={focado ? '#fff' : cores.textoSecundario} />}
+              <Text style={[styles.sidebarItemTexto, { color: cores.textoSecundario }, focado && styles.sidebarItemTextoAtivo]}>
                 {route.name}
               </Text>
             </TouchableOpacity>
@@ -124,12 +146,12 @@ function SidebarTabBar({ state, descriptors, navigation }) {
         })}
       </View>
 
-      <View style={styles.sidebarGoalCard}>
+      <View style={[styles.sidebarGoalCard, { backgroundColor: cores.fundo, borderColor: cores.borda }]}>
         <View style={styles.sidebarGoalIcone}>
-          <Ionicons name="flag-outline" size={16} color="#0F766E" />
+          <Ionicons name="flag-outline" size={16} color={cores.primario} />
         </View>
         <Text style={styles.sidebarGoalKicker}>FOCO</Text>
-        <Text style={styles.sidebarGoalTitulo}>Um mês de cada vez</Text>
+        <Text style={[styles.sidebarGoalTitulo, { color: cores.texto }]}>Um mês de cada vez</Text>
         <Text style={styles.sidebarGoalDescricao}>
           Seu dinheiro fica mais claro quando o próximo passo também fica.
         </Text>
@@ -331,8 +353,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sidebarLogoTexto: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
+  sidebarLogoTexto: { fontSize: 17, fontWeight: '700', color: '#0F172A', fontFamily: 'Space Grotesk, sans-serif' },
   sidebarLogoCaption: { fontSize: 9, letterSpacing: 1, color: '#64748B', marginTop: 1 },
+  sidebarThemeBotao: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sidebarSectionLabel: {
     fontSize: 10,
     letterSpacing: 1.2,
@@ -372,7 +401,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sidebarGoalKicker: { fontSize: 9, letterSpacing: 1.2, color: '#94A3B8', marginTop: 10 },
-  sidebarGoalTitulo: { fontSize: 13, fontWeight: '600', color: '#0F172A', marginTop: 4 },
+  sidebarGoalTitulo: { fontSize: 13, fontWeight: '600', color: '#0F172A', marginTop: 4, fontFamily: 'Space Grotesk, sans-serif' },
   sidebarGoalDescricao: { fontSize: 11, lineHeight: 16, color: '#64748B', marginTop: 4 },
   botaoAdicionarWeb: {
     flexDirection: 'row',
