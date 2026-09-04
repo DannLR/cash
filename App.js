@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider } from './context/ThemeContext';
 import { MonthProvider } from './context/MonthContext';
+import { useWindowDimensions } from 'react-native';
 import {
   View,
   Text,
@@ -12,6 +13,7 @@ import {
   Modal,
   StyleSheet,
   Pressable,
+  Platform,
 } from 'react-native';
 
 import HomeScreen from './screens/HomeScreen';
@@ -50,7 +52,15 @@ function TelaVazia() {
   return <View />;
 }
 
-function BotaoAdicionar({ onPress }) {
+function BotaoAdicionar({ onPress, web }) {
+  if (web) {
+    return (
+      <TouchableOpacity style={styles.botaoAdicionarWeb} onPress={onPress} activeOpacity={0.85}>
+        <Ionicons name="add" size={18} color="#fff" />
+        <Text style={styles.botaoAdicionarWebTexto}>Adicionar</Text>
+      </TouchableOpacity>
+    );
+  }
   return (
     <TouchableOpacity style={styles.fabWrapper} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.fab}>
@@ -61,6 +71,10 @@ function BotaoAdicionar({ onPress }) {
 }
 
 function Tabs({ onAbrirMenu }) {
+  const { width } = useWindowDimensions();
+  // Barra no topo só em telas largas (computador/tablet). Em telas estreitas
+  // — celular, seja app nativo ou navegador do celular — mantém embaixo.
+  const web = Platform.OS === 'web' && width >= 768;
   const icones = {
     Início: 'home-outline',
     Planejamento: 'calendar-outline',
@@ -72,11 +86,16 @@ function Tabs({ onAbrirMenu }) {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarPosition: web ? 'top' : 'bottom',
         tabBarActiveTintColor: '#0F766E',
         tabBarInactiveTintColor: '#8A8A8E',
+        tabBarLabelPosition: web ? 'beside-icon' : 'below-icon',
+        tabBarStyle: web ? styles.tabBarWeb : undefined,
+        tabBarItemStyle: web ? styles.tabItemWeb : undefined,
+        tabBarIndicatorStyle: web ? styles.tabIndicatorWeb : undefined,
         tabBarIcon: ({ color, size }) =>
           icones[route.name] ? (
-            <Ionicons name={icones[route.name]} size={size} color={color} />
+            <Ionicons name={icones[route.name]} size={web ? 18 : size} color={color} />
           ) : null,
       })}
     >
@@ -86,7 +105,7 @@ function Tabs({ onAbrirMenu }) {
         name="Adicionar"
         component={TelaVazia}
         options={{
-          tabBarButton: () => <BotaoAdicionar onPress={onAbrirMenu} />,
+          tabBarButton: () => <BotaoAdicionar onPress={onAbrirMenu} web={web} />,
         }}
         listeners={{
           tabPress: (e) => {
@@ -229,6 +248,36 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  tabBarWeb: {
+    height: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    borderTopWidth: 0,
+    paddingHorizontal: '8%',
+    justifyContent: 'center',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  tabItemWeb: {
+    width: 'auto',
+    minWidth: 0,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+  },
+  tabIndicatorWeb: {
+    backgroundColor: '#0F766E',
+    height: 2,
+  },
+  botaoAdicionarWeb: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0F766E',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  botaoAdicionarWebTexto: { color: '#fff', fontSize: 13, fontWeight: '600' },
   fabWrapper: {
     top: -18,
     justifyContent: 'center',
