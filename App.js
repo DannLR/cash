@@ -70,32 +70,91 @@ function BotaoAdicionar({ onPress, web }) {
   );
 }
 
+const ICONES_ABAS = {
+  Início: 'home-outline',
+  Planejamento: 'calendar-outline',
+  Contas: 'repeat-outline',
+  Insights: 'stats-chart-outline',
+};
+
+function SidebarTabBar({ state, descriptors, navigation }) {
+  return (
+    <View style={styles.sidebarWeb}>
+      <View style={styles.sidebarLogoRow}>
+        <View style={styles.sidebarLogoBox}>
+          <Ionicons name="trending-up" size={18} color="#fff" />
+        </View>
+        <View>
+          <Text style={styles.sidebarLogoTexto}>cash</Text>
+          <Text style={styles.sidebarLogoCaption}>CONTROLE FINANCEIRO</Text>
+        </View>
+      </View>
+
+      <Text style={styles.sidebarSectionLabel}>SEU DINHEIRO</Text>
+
+      <View style={styles.sidebarLista}>
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+
+          // A aba "Adicionar" já tem seu próprio botão especial (abre o menu).
+          if (options.tabBarButton) {
+            return <View key={route.key}>{options.tabBarButton({})}</View>;
+          }
+
+          const focado = state.index === index;
+          const icone = ICONES_ABAS[route.name];
+          const aoPressionar = () => {
+            const evento = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+            if (!focado && !evento.defaultPrevented) navigation.navigate(route.name);
+          };
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={aoPressionar}
+              activeOpacity={0.7}
+              style={[styles.sidebarItemWeb, focado && styles.sidebarItemWebAtivo]}
+            >
+              {icone && <Ionicons name={icone} size={18} color={focado ? '#fff' : '#5B6472'} />}
+              <Text style={[styles.sidebarItemTexto, focado && styles.sidebarItemTextoAtivo]}>
+                {route.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <View style={styles.sidebarGoalCard}>
+        <View style={styles.sidebarGoalIcone}>
+          <Ionicons name="flag-outline" size={16} color="#0F766E" />
+        </View>
+        <Text style={styles.sidebarGoalKicker}>FOCO</Text>
+        <Text style={styles.sidebarGoalTitulo}>Um mês de cada vez</Text>
+        <Text style={styles.sidebarGoalDescricao}>
+          Seu dinheiro fica mais claro quando o próximo passo também fica.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 function Tabs({ onAbrirMenu }) {
   const { width } = useWindowDimensions();
-  // Barra no topo só em telas largas (computador/tablet). Em telas estreitas
+  // Barra lateral só em telas largas (computador/tablet). Em telas estreitas
   // — celular, seja app nativo ou navegador do celular — mantém embaixo.
   const web = Platform.OS === 'web' && width >= 768;
-  const icones = {
-    Início: 'home-outline',
-    Planejamento: 'calendar-outline',
-    Contas: 'repeat-outline',
-    Insights: 'stats-chart-outline',
-  };
 
   return (
     <Tab.Navigator
+      tabBar={web ? (props) => <SidebarTabBar {...props} /> : undefined}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarPosition: web ? 'top' : 'bottom',
+        tabBarPosition: web ? 'left' : 'bottom',
         tabBarActiveTintColor: '#0F766E',
         tabBarInactiveTintColor: '#8A8A8E',
-        tabBarLabelPosition: web ? 'beside-icon' : 'below-icon',
-        tabBarStyle: web ? styles.tabBarWeb : undefined,
-        tabBarItemStyle: web ? styles.tabItemWeb : undefined,
-        tabBarIndicatorStyle: web ? styles.tabIndicatorWeb : undefined,
         tabBarIcon: ({ color, size }) =>
-          icones[route.name] ? (
-            <Ionicons name={icones[route.name]} size={web ? 18 : size} color={color} />
+          ICONES_ABAS[route.name] ? (
+            <Ionicons name={ICONES_ABAS[route.name]} size={size} color={color} />
           ) : null,
       })}
     >
@@ -105,7 +164,7 @@ function Tabs({ onAbrirMenu }) {
         name="Adicionar"
         component={TelaVazia}
         options={{
-          tabBarButton: () => <BotaoAdicionar onPress={onAbrirMenu} web={web} />,
+          tabBarButton: () => <BotaoAdicionar onPress={onAbrirMenu} web={web} sidebar />,
         }}
         listeners={{
           tabPress: (e) => {
@@ -248,33 +307,82 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  tabBarWeb: {
-    height: 56,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    borderTopWidth: 0,
-    paddingHorizontal: '8%',
-    justifyContent: 'center',
-    elevation: 0,
-    shadowOpacity: 0,
+  sidebarWeb: {
+    width: 256,
+    height: '100%',
+    paddingTop: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
-  tabItemWeb: {
-    width: 'auto',
-    minWidth: 0,
-    paddingHorizontal: 18,
+  sidebarLogoRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 8,
   },
-  tabIndicatorWeb: {
+  sidebarLogoBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: '#0F766E',
-    height: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  sidebarLogoTexto: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
+  sidebarLogoCaption: { fontSize: 9, letterSpacing: 1, color: '#64748B', marginTop: 1 },
+  sidebarSectionLabel: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: '#94A3B8',
+    marginTop: 40,
+    marginBottom: 10,
+    paddingHorizontal: 8,
+  },
+  sidebarLista: { gap: 2 },
+  sidebarItemWeb: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 12,
+    height: 42,
+    paddingHorizontal: 10,
+  },
+  sidebarItemWebAtivo: {
+    backgroundColor: '#0F766E',
+  },
+  sidebarItemTexto: { fontSize: 14, fontWeight: '500', color: '#5B6472' },
+  sidebarItemTextoAtivo: { color: '#fff' },
+  sidebarGoalCard: {
+    marginTop: 'auto',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  sidebarGoalIcone: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(15,118,110,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sidebarGoalKicker: { fontSize: 9, letterSpacing: 1.2, color: '#94A3B8', marginTop: 10 },
+  sidebarGoalTitulo: { fontSize: 13, fontWeight: '600', color: '#0F172A', marginTop: 4 },
+  sidebarGoalDescricao: { fontSize: 11, lineHeight: 16, color: '#64748B', marginTop: 4 },
   botaoAdicionarWeb: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     backgroundColor: '#0F766E',
-    borderRadius: 8,
-    paddingVertical: 8,
+    borderRadius: 12,
+    height: 42,
+    marginBottom: 2,
     paddingHorizontal: 14,
   },
   botaoAdicionarWebTexto: { color: '#fff', fontSize: 13, fontWeight: '600' },
