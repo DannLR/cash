@@ -91,6 +91,7 @@ const ICONES_ABAS = {
   Início: 'home-outline',
   Planejamento: 'calendar-outline',
   Contas: 'repeat-outline',
+  Cartões: 'card-outline',
   Insights: 'stats-chart-outline',
 };
 
@@ -196,6 +197,7 @@ function Tabs({ onAbrirMenu }) {
         }}
       />
       <Tab.Screen name="Contas" component={ContasScreen} />
+      {web && <Tab.Screen name="Cartões" component={CardsScreen} />}
       <Tab.Screen name="Insights" component={InsightsScreen} />
     </Tab.Navigator>
   );

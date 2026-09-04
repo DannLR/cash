@@ -243,7 +243,7 @@ function ContasWeb({ cores, abaAtiva, setAbaAtiva, fixas, gastos, totalGastos, t
           </View>
           <TouchableOpacity
             style={[webStyles.statCard, { backgroundColor: cores.card }]}
-            onPress={() => navigationRef.navigate('Cartoes')}
+            onPress={() => navigationRef.navigate('Cartões')}
             activeOpacity={0.8}
           >
             <Text style={[webStyles.statLabel, { color: cores.textoSecundario }]}>Comprometido em cartões</Text>
