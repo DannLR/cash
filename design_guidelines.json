@@ -1,0 +1,283 @@
+{
+  "project_overview": {
+    "app_name": "cash (Web Edition)",
+    "app_type": "dashboard",
+    "description": "Responsive Web adaptation of the Expo Go 'cash' personal finance mobile app. Prioritizes fidelity to original mobile workflows, financial calculations (Saldo Livre Real, Posso Comprar Isso?, Metas, Contas Fixas vs Gastos Avulsos, Cartões), while expanding into a high-density, double-column Bento Web Dashboard for desktop and mobile web.",
+    "target_platform": "Responsive Web (Desktop, Tablet, Mobile Web)",
+    "file_extension": ".js",
+    "design_persona": "E1 Creative Designer - High Precision Financial Command Center",
+    "theme_strategy": "Dual Mode (Dark & Light) with system default sync and explicit header toggle. Dark Mode primary anchor: Slate Dark Obsidian. Light Mode primary anchor: Soft Sand Clean Grey."
+  },
+  "typography": {
+    "heading_font": "Cabinet Grotesk",
+    "body_font": "DM Sans",
+    "mono_font": "JetBrains Mono",
+    "font_family_imports": "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=JetBrains+Mono:wght@400;500;600;700&display=swap",
+    "hierarchy_rules": {
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none",
+      "h2_section": "text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight",
+      "h3_card": "text-xl sm:text-2xl font-medium tracking-normal",
+      "h4_widget": "text-lg sm:text-xl font-medium",
+      "body_base": "text-base leading-relaxed font-normal",
+      "body_sm": "text-sm leading-normal text-muted-foreground",
+      "labels_mono": "text-xs font-mono uppercase tracking-widest text-muted-foreground"
+    },
+    "anti_patterns": [
+      "Never use Inter or generic sans for Main and Sub-headings",
+      "Never exceed text-6xl for hero headers on desktop viewports",
+      "Always set tight tracking (tracking-tight or tracking-tighter) for headlines over 32px"
+    ]
+  },
+  "colors": {
+    "archetype": "ORGANIC & PERFORMANCE PRO FUSION (Trust, Emerald Teal, Precision Financial Focus)",
+    "dark_mode": {
+      "background_page": "#0B0F17",
+      "background_card": "#161F2C",
+      "background_card_hover": "#1C2A3A",
+      "border": "#232F3E",
+      "border_accent": "#0D9488",
+      "text_primary": "#F8FAFC",
+      "text_secondary": "#94A3B8",
+      "text_muted": "#64748B",
+      "primary": "#14B8A6",
+      "primary_hover": "#0D9488",
+      "primary_accent": "#0D9488",
+      "emerald_hero_bg": "#064E3B",
+      "emerald_hero_text": "#ECFDF5",
+      "success": "#22C55E",
+      "danger": "#EF4444",
+      "warning": "#F59E0B"
+    },
+    "light_mode": {
+      "background_page": "#F8FAFC",
+      "background_card": "#FFFFFF",
+      "background_card_hover": "#F1F5F9",
+      "border": "#E2E8F0",
+      "border_accent": "#0D9488",
+      "text_primary": "#0F172A",
+      "text_secondary": "#475569",
+      "text_muted": "#94A3B8",
+      "primary": "#0D9488",
+      "primary_hover": "#0F766E",
+      "primary_accent": "#0F766E",
+      "emerald_hero_bg": "#0D9488",
+      "emerald_hero_text": "#FFFFFF",
+      "success": "#16A34A",
+      "danger": "#DC2626",
+      "warning": "#D97706"
+    },
+    "contrast_rules": {
+      "normal_text_min_ratio": "4.5:1",
+      "large_text_min_ratio": "3:1",
+      "interactive_hover_rule": "Always explicitly define hover:text-* alongside hover:bg-* to guarantee legible contrast",
+      "tinted_grey_rule": "Never use pure #000000 or #808080. Neutral greys are subtly tinted with slate blue hue"
+    }
+  },
+  "layout_and_grids": {
+    "desktop_navigation": {
+      "type": "Left Collapsible Vertical Sidebar + Top Glass Sticky Bar",
+      "sidebar_width": "w-64 (256px)",
+      "sidebar_collapsed": "w-20 (80px)",
+      "topbar_height": "h-16 (64px)"
+    },
+    "mobile_navigation": {
+      "type": "Sticky Top Header + Bottom Fixed Navigation Dock",
+      "bottom_dock_height": "h-16 (64px)",
+      "items": [
+        {"label": "Início", "icon": "LayoutDashboard", "target": "home"},
+        {"label": "Contas", "icon": "Receipt", "target": "contas"},
+        {"label": "Planejamento", "icon": "CalendarClock", "target": "planning"},
+        {"label": "Cartões", "icon": "CreditCard", "target": "cartoes"},
+        {"label": "Metas", "icon": "Target", "target": "metas"},
+        {"label": "Insights", "icon": "PieChart", "target": "insights"}
+      ]
+    },
+    "grid_protocol": {
+      "mode": "High Density Dashboard Grid (MODE B)",
+      "desktop_layout": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-12 gap-6 p-6 max-w-[1600px] mx-auto",
+      "widget_spans": {
+        "hero_saldo_livre": "col-span-full lg:col-span-8 row-span-1",
+        "posso_comprar_widget": "col-span-full lg:col-span-4 row-span-1",
+        "quick_stats_grid": "col-span-full lg:col-span-8",
+        "next_transactions_list": "col-span-full lg:col-span-4 row-span-2",
+        "fixed_vs_variable_accounts": "col-span-full lg:col-span-8",
+        "credit_cards_summary": "col-span-full lg:col-span-4"
+      }
+    },
+    "spacing_system": {
+      "container_padding": "p-4 sm:p-6 lg:p-8",
+      "card_internal_padding": "p-5 sm:p-6",
+      "gap_scale": "gap-4 sm:gap-6 lg:gap-8"
+    }
+  },
+  "surface_strategies": {
+    "header_nav": "Crystal Glassmorphism with backdrop-blur-xl bg-background/80 border-b border-border/50 z-40 sticky top-0",
+    "dashboard_cards": "Flat background with subtle 1px border (border-border/60), rounded-xl, transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/40",
+    "hero_saldo_livre_card": "Prominent Emerald Gradient/Solid Surface (bg-teal-600 dark:bg-emerald-950/80) with rounded-2xl, subtle inner border (border-emerald-400/30), high-contrast text, glowing action button",
+    "posso_comprar_modal": "Glass backdrop scrim overlay (bg-black/60 backdrop-blur-md) with crisp floating card modal, custom currency masked input, and clear simulation breakdown state"
+  },
+  "component_mapping_expo_to_web": [
+    {
+      "expo_screen": "HomeScreen.js",
+      "web_component": "HomeDashboard.js",
+      "responsiveness": "Desktop: 2-column Bento Grid featuring Saldo Livre Real banner, Posso Comprar simulation widget, Stat counters (Entrou, Gasto, Previsto), and Contas Pagas badge. Mobile: Single vertical stack.",
+      "key_elements": [
+        "Month Navigation Dropdown Selector with quick prev/next month chevrons",
+        "Saldo Disponível vs Metas total top metrics",
+        "Stat cards with interactive drill-down filters",
+        "Saldo Livre Real hero banner",
+        "Interactive 'Posso comprar isso?' simulation modal & floating quick trigger",
+        "Monthly pace alert box"
+      ]
+    },
+    {
+      "expo_screen": "PlanningScreen.js",
+      "web_component": "UpcomingCashflow.js",
+      "responsiveness": "Interactive timeline list with monthly forecast card and minimum predicted balance alert banner.",
+      "key_elements": [
+        "Total dos próximos lançamentos sum card",
+        "Minimum predicted balance warning badge",
+        "Chronological transaction items with day pill badges, recurrence type, and value indicator"
+      ]
+    },
+    {
+      "expo_screen": "ContasScreen.js",
+      "web_component": "FixedAndVariableExpenses.js",
+      "responsiveness": "Tabbed view (Fixas vs Gastos Avulsos) with data table / item cards, category icons, payment checkbox toggles, and direct add buttons.",
+      "key_elements": [
+        "Header total for current active tab",
+        "Cartões quick summary preview button",
+        "Tabs switcher (Fixas / Gastos)",
+        "Fixed account row with toggleable payment checkbox and status highlight",
+        "Category color badge & icon",
+        "Dashed border button to add new entry"
+      ]
+    },
+    {
+      "expo_screen": "CardsScreen.js & CardDetailsScreen.js",
+      "web_component": "CreditCardManager.js",
+      "responsiveness": "Stacked 3D virtual credit cards list on desktop/mobile with interactive card flip/details, invoice closing dates, limits, and installments timeline.",
+      "key_elements": [
+        "Total credit card commitment summary card",
+        "Visual credit cards stack with brand badges, masked number, card nickname, and monthly total",
+        "Add credit card FAB / button",
+        "Card invoice drill-down with subscriptions and installments list"
+      ]
+    },
+    {
+      "expo_screen": "GoalsScreen.js & GoalDetailScreen.js",
+      "web_component": "FinancialGoalsHub.js",
+      "responsiveness": "Grid of goal cards with progress rings, saved amount, monthly contribution allocation, and add deposit drawer.",
+      "key_elements": [
+        "Total guardado em metas metric",
+        "Goal card with target amount, current balance, progress bar %",
+        "Monthly deposit allocation badge (aporteMensal)",
+        "Add goal modal with category icon selector"
+      ]
+    },
+    {
+      "expo_screen": "InsightsScreen.js",
+      "web_component": "FinancialInsights.js",
+      "responsiveness": "Recharts donut chart for category distribution and bar chart for month-over-month comparison.",
+      "key_elements": [
+        "Category comparison charts",
+        "Top spending categories rank list",
+        "Month-over-month percentage change badges"
+      ]
+    },
+    {
+      "expo_screen": "AddTransactionScreen.js",
+      "web_component": "TransactionDrawerModal.js",
+      "responsiveness": "Slide-over right drawer on desktop / Bottom sheet modal on mobile web.",
+      "key_elements": [
+        "Step 1: Formatted Real currency input (R$ 0,00 mask)",
+        "Step 2: Category grid selector with color pills",
+        "Step 3: Payment method (Débito, Crédito, PIX, Dinheiro)",
+        "Step 4: Recurrence / Installments configuration (single, monthly, installments count)",
+        "Step 5: Date picker and notes input"
+      ]
+    },
+    {
+      "expo_screen": "SettingsScreen.js & OnboardingScreen.js",
+      "web_component": "SettingsAndOnboarding.js",
+      "responsiveness": "Settings modal/page for theme toggles, notification reminders, and interactive Onboarding tour wizard.",
+      "key_elements": [
+        "Light/Dark theme toggle switch",
+        "Notification and reminder preference toggles",
+        "Reset onboarding button for testing user flows",
+        "Multi-step Onboarding slides introducing 'Saldo Livre Real'"
+      ]
+    }
+  ],
+  "component_usage_rules": {
+    "shadcn_primitives": [
+      "Use Dialog / Sheet for transaction drawers and 'Posso comprar isso?' calculator",
+      "Use Tabs for Contas (Fixas vs Gastos Avulsos) switching",
+      "Use Calendar / Popover for custom date picking",
+      "Use Select for month navigation and category selection",
+      "Use Sonner for toast notifications on item deletion, payment status changes, and settings updates",
+      "Use Custom Tailwind HTML containers for asymmetric dashboard Bento grids rather than standard nested cards"
+    ],
+    "charts_system": {
+      "library": "Recharts with custom responsive containers",
+      "donut_chart": "Category spending distribution with custom tooltip and dark/light mode stroke colors",
+      "bar_chart": "Monthly income vs expense trend comparison"
+    }
+  },
+  "motion_and_interactions": {
+    "framer_motion_rules": [
+      "Use AnimatePresence for tab switching between Fixas and Gastos Avulsos",
+      "Use subtle hover scaling (scale: 1.02) and lift (-translate-y-0.5) for dashboard cards",
+      "Slide-in transitions for slide-over drawer modals",
+      "Smooth height expansion for card invoice breakdown items",
+      "Always include prefers-reduced-motion check to disable motion for users with motion sensitivity"
+    ]
+  },
+  "testing_and_accessibility": {
+    "test_id_convention": "All key buttons, inputs, values, cards, and navigation links MUST include data-testid attributes in kebab-case",
+    "required_data_test_ids": [
+      "data-testid=\"app-brand-logo\"",
+      "data-testid=\"month-picker-button\"",
+      "data-testid=\"theme-toggle-button\"",
+      "data-testid=\"saldo-disponivel-value\"",
+      "data-testid=\"saldo-livre-real-value\"",
+      "data-testid=\"total-metas-value\"",
+      "data-testid=\"stat-entrou-value\"",
+      "data-testid=\"stat-gasto-value\"",
+      "data-testid=\"stat-previsto-value\"",
+      "data-testid=\"posso-comprar-button\"",
+      "data-testid=\"posso-comprar-modal\"",
+      "data-testid=\"posso-comprar-input\"",
+      "data-testid=\"posso-comprar-submit\"",
+      "data-testid=\"posso-comprar-result\"",
+      "data-testid=\"tab-contas-fixas\"",
+      "data-testid=\"tab-gastos-avulsos\"",
+      "data-testid=\"add-transaction-button\"",
+      "data-testid=\"credit-card-item\"",
+      "data-testid=\"goal-card-item\"",
+      "data-testid=\"bottom-nav-dock\""
+    ]
+  },
+  "media_and_assets": {
+    "icons": "Lucide React / Phosphor Icons (@heroicons/react or lucide-react)",
+    "curated_images": [
+      {
+        "category": "user_avatar",
+        "url": "https://images.unsplash.com/photo-1633544325196-bcf8bf81ead0?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "User Profile Avatar"
+      },
+      {
+        "category": "finance_dashboard_hero",
+        "url": "https://images.unsplash.com/photo-1655807286510-a49644c29ef9?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "alt": "Finance Dashboard Hero Illustration"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Ensure complete feature fidelity to the original Expo app (Saldo Livre Real formula, Posso Comprar calculator, payment status toggling, Month Context, Theme Context).",
+    "Build modular React components using `.js` file extensions inside `src/components/` and `src/pages/`.",
+    "Structure desktop view as a modern SaaS financial dashboard with left sidebar, top header, and Bento grid, while providing a seamless mobile web view with sticky top header and bottom nav dock.",
+    "Do NOT alter or touch any existing Expo mobile files under /app/app-financeiro-full/. Keep all new web code isolated in /app/frontend/.",
+    "Ensure all interactive elements have data-testid attributes for automated testing."
+  ]
+}
