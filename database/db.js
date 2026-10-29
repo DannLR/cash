@@ -88,25 +88,6 @@ export function gerarId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-async function buscarOuCriarCategoria(db, nome, tipo) {
-  let categoria = await db.getFirstAsync(
-    'SELECT id FROM categorias WHERE usuario_id = ? AND nome = ? AND tipo = ?',
-    [USUARIO_ID, nome, tipo]
-  );
-  if (categoria) return categoria.id;
-  const id = gerarId();
-  await db.runAsync(
-    'INSERT INTO categorias (id, usuario_id, nome, tipo, padrao) VALUES (?, ?, ?, ?, 0)',
-    [id, USUARIO_ID, nome, tipo]
-  );
-  return id;
-}
-
-// Cada "ensure" abaixo é independente e idempotente: roda toda vez que o
-// app abre, mas só insere dados se ainda não existirem. Isso permite
-// completar o banco de quem já usou o app antes, sem duplicar nada
-// nem apagar o que a pessoa já lançou manualmente.
-
 async function ensureUsuario(db) {
   const usuario = await db.getFirstAsync('SELECT * FROM usuarios WHERE id = ?', [USUARIO_ID]);
   if (usuario) return;
@@ -152,104 +133,6 @@ async function ensureCategoriasPadrao(db) {
   }
 }
 
-async function ensureMovimentacoesExemplo(db) {
-  const alguma = await db.getFirstAsync(
-    'SELECT id FROM movimentacoes WHERE usuario_id = ? LIMIT 1',
-    [USUARIO_ID]
-  );
-  if (alguma) return; // já existem lançamentos (seus ou de exemplo) — não mexe
-
-  const hoje = new Date();
-  const exemplos = [
-    { dia: 1, nome: 'Salário', tipo: 'entrada', valor: 5000, forma: 'pix' },
-    { dia: 5, nome: 'Internet', tipo: 'saida', valor: 120, forma: 'debito' },
-    { dia: 10, nome: 'Aluguel', tipo: 'saida', valor: 1000, forma: 'pix' },
-    { dia: 18, nome: 'Mercado', tipo: 'saida', valor: 187.4, forma: 'debito' },
-    { dia: 20, nome: 'Restaurantes', tipo: 'saida', valor: 45.9, forma: 'credito' },
-  ];
-  for (const ex of exemplos) {
-    const data = new Date(hoje.getFullYear(), hoje.getMonth(), ex.dia);
-    const categoriaId = await buscarOuCriarCategoria(db, ex.nome, ex.tipo);
-    await db.runAsync(
-      'INSERT INTO movimentacoes (id, usuario_id, categoria_id, tipo, valor, data, forma_pagamento, origem) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [gerarId(), USUARIO_ID, categoriaId, ex.tipo, ex.valor, data.toISOString(), ex.forma, 'avulsa']
-    );
-  }
-}
-
-async function ensureMovimentacoesMesAnterior(db) {
-  const hoje = new Date();
-  const inicioMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-  const fimMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth(), 0, 23, 59, 59);
-
-  const alguma = await db.getFirstAsync(
-    'SELECT id FROM movimentacoes WHERE usuario_id = ? AND data BETWEEN ? AND ? LIMIT 1',
-    [USUARIO_ID, inicioMesAnterior.toISOString(), fimMesAnterior.toISOString()]
-  );
-  if (alguma) return; // já tem dado do mês anterior — não mexe
-
-  const exemplos = [
-    { dia: 3, nome: 'Mercado', tipo: 'saida', valor: 850, forma: 'debito' },
-    { dia: 8, nome: 'Lazer', tipo: 'saida', valor: 300, forma: 'credito' },
-    { dia: 14, nome: 'Restaurantes', tipo: 'saida', valor: 420, forma: 'credito' },
-    { dia: 22, nome: 'Combustível', tipo: 'saida', valor: 500, forma: 'debito' },
-  ];
-  for (const ex of exemplos) {
-    const data = new Date(inicioMesAnterior.getFullYear(), inicioMesAnterior.getMonth(), ex.dia);
-    const categoriaId = await buscarOuCriarCategoria(db, ex.nome, ex.tipo);
-    await db.runAsync(
-      'INSERT INTO movimentacoes (id, usuario_id, categoria_id, tipo, valor, data, forma_pagamento, origem) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [gerarId(), USUARIO_ID, categoriaId, ex.tipo, ex.valor, data.toISOString(), ex.forma, 'avulsa']
-    );
-  }
-}
-
-async function ensureContasRecorrentes(db) {
-  const existentes = await db.getAllAsync(
-    'SELECT tipo FROM contas_recorrentes WHERE usuario_id = ?',
-    [USUARIO_ID]
-  );
-  const tiposExistentes = new Set(existentes.map((c) => c.tipo));
-
-  if (!tiposExistentes.has('fixa')) {
-    const fixas = [
-      { nome: 'Aluguel', valor: 1000, dia: 10 },
-      { nome: 'Energia', valor: 180, dia: 15 },
-      { nome: 'Internet', valor: 120, dia: 5 },
-      { nome: 'Academia', valor: 90, dia: 8 },
-    ];
-    for (const f of fixas) {
-      const categoriaId = await buscarOuCriarCategoria(db, f.nome, 'saida');
-      await db.runAsync(
-        'INSERT INTO contas_recorrentes (id, usuario_id, categoria_id, tipo, nome, valor, dia_vencimento, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [gerarId(), USUARIO_ID, categoriaId, 'fixa', f.nome, f.valor, f.dia, 'ativa']
-      );
-    }
-  }
-
-  if (!tiposExistentes.has('parcela')) {
-    const categoriaId = await buscarOuCriarCategoria(db, 'Compras', 'saida');
-    await db.runAsync(
-      'INSERT INTO contas_recorrentes (id, usuario_id, categoria_id, tipo, nome, valor, dia_vencimento, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [gerarId(), USUARIO_ID, categoriaId, 'parcela', 'Notebook', 350, 15, 'ativa']
-    );
-  }
-
-  if (!tiposExistentes.has('assinatura')) {
-    const categoriaId = await buscarOuCriarCategoria(db, 'Assinaturas', 'saida');
-    const assinaturas = [
-      { nome: 'Streaming de vídeo', valor: 45, dia: 12 },
-      { nome: 'Streaming de música', valor: 22, dia: 20 },
-    ];
-    for (const a of assinaturas) {
-      await db.runAsync(
-        'INSERT INTO contas_recorrentes (id, usuario_id, categoria_id, tipo, nome, valor, dia_vencimento, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [gerarId(), USUARIO_ID, categoriaId, 'assinatura', a.nome, a.valor, a.dia, 'ativa']
-      );
-    }
-  }
-}
-
 // Contas fixas/assinaturas criadas antes desta atualização não tinham
 // "mes_inicio" registrado (só parcelas tinham). Preenche com a data de
 // hoje como aproximação, para que passem a existir só a partir de agora
@@ -288,9 +171,6 @@ export async function getDb() {
   await ensureColuna(dbInstance, 'categorias', 'cor', "TEXT DEFAULT '#0F766E'");
   await ensureUsuario(dbInstance);
   await ensureCategoriasPadrao(dbInstance);
-  await ensureMovimentacoesExemplo(dbInstance);
-  await ensureMovimentacoesMesAnterior(dbInstance);
-  await ensureContasRecorrentes(dbInstance);
   await ensureMesInicioContasAntigas(dbInstance);
   await ensureLimparCategoriaTeste(dbInstance);
   return dbInstance;
