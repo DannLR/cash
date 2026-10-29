@@ -178,6 +178,46 @@ async function ensureRemoverAssinaturaDemonstracao(db) {
   await db.runAsync('INSERT INTO app_migrations (id, executada_em) VALUES (?, ?)', [idMigracao, new Date().toISOString()]);
 }
 
+// Remove os lançamentos de exemplo das versões antigas (incluindo a saída
+// de R$ 45,90 que aparecia no resumo). A lista é restrita aos valores, dias,
+// categorias e formas usados pelo seed original; só roda uma vez por banco.
+async function ensureRemoverMovimentacoesDemonstracao(db) {
+  const idMigracao = 'remove-demo-transactions-v1';
+  const executada = await db.getFirstAsync('SELECT id FROM app_migrations WHERE id = ?', [idMigracao]);
+  if (executada) return;
+
+  const exemplos = [
+    { dia: 1, nome: 'Salário', tipo: 'entrada', valor: 5000, forma: 'pix' },
+    { dia: 5, nome: 'Internet', tipo: 'saida', valor: 120, forma: 'debito' },
+    { dia: 10, nome: 'Aluguel', tipo: 'saida', valor: 1000, forma: 'pix' },
+    { dia: 18, nome: 'Mercado', tipo: 'saida', valor: 187.4, forma: 'debito' },
+    { dia: 20, nome: 'Restaurantes', tipo: 'saida', valor: 45.9, forma: 'credito' },
+    { dia: 3, nome: 'Mercado', tipo: 'saida', valor: 850, forma: 'debito' },
+    { dia: 8, nome: 'Lazer', tipo: 'saida', valor: 300, forma: 'credito' },
+    { dia: 14, nome: 'Restaurantes', tipo: 'saida', valor: 420, forma: 'credito' },
+    { dia: 22, nome: 'Combustível', tipo: 'saida', valor: 500, forma: 'debito' },
+  ];
+  const hoje = new Date();
+  const referenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  const mesAnteriorData = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const referenciaAnterior = `${mesAnteriorData.getFullYear()}-${String(mesAnteriorData.getMonth() + 1).padStart(2, '0')}`;
+
+  for (const exemplo of exemplos) {
+    await db.runAsync(
+      `DELETE FROM movimentacoes
+       WHERE usuario_id = ? AND tipo = ? AND valor = ? AND forma_pagamento = ?
+         AND strftime('%Y-%m', data) IN (?, ?)
+         AND CAST(strftime('%d', data) AS INTEGER) = ?
+         AND categoria_id IN (
+           SELECT id FROM categorias WHERE usuario_id = ? AND nome = ? AND tipo = ?
+         )`,
+      [USUARIO_ID, exemplo.tipo, exemplo.valor, exemplo.forma, referenciaAtual, referenciaAnterior, exemplo.dia, USUARIO_ID, exemplo.nome, exemplo.tipo]
+    );
+  }
+
+  await db.runAsync('INSERT INTO app_migrations (id, executada_em) VALUES (?, ?)', [idMigracao, new Date().toISOString()]);
+}
+
 export async function getDb() {
   if (dbInstance) return dbInstance;
   dbInstance = await SQLite.openDatabaseAsync('app-financeiro.db');
@@ -200,6 +240,7 @@ export async function getDb() {
   await ensureMesInicioContasAntigas(dbInstance);
   await ensureLimparCategoriaTeste(dbInstance);
   await ensureRemoverAssinaturaDemonstracao(dbInstance);
+  await ensureRemoverMovimentacoesDemonstracao(dbInstance);
   return dbInstance;
 }
 

@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.cash.controlefinanceiro",
-      "versionCode": 9,
+      "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#8665B5"
