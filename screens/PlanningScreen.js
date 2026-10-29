@@ -4,6 +4,8 @@ import {
   ScrollView,
   View,
   Text,
+  TouchableOpacity,
+  Alert,
   StyleSheet,
   ActivityIndicator,
   Platform,
@@ -11,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { getProximosLancamentos, calcularResumoMensal } from '../database/queries';
+import { getProximosLancamentos, calcularResumoMensal, excluirContaRecorrente } from '../database/queries';
 import { useMes } from '../context/MonthContext';
 import { useTema } from '../context/ThemeContext';
 import WebPageHeader from '../components/WebPageHeader';
@@ -31,6 +33,7 @@ export default function PlanningScreen() {
   const [lancamentos, setLancamentos] = useState([]);
   const [resumo, setResumo] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [atualizacao, setAtualizacao] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -49,8 +52,27 @@ export default function PlanningScreen() {
       }
       carregar();
       return () => { ativo = false; };
-    }, [ano, mes])
+    }, [ano, mes, atualizacao])
   );
+
+  function editarConta(item) {
+    navigationRef.navigate('EditarLancamentos', { modo: 'recorrente', contaId: item.id });
+  }
+
+  function apagarConta(item) {
+    const apagar = async () => {
+      await excluirContaRecorrente(item.id);
+      setAtualizacao((valor) => valor + 1);
+    };
+    if (web && typeof window !== 'undefined') {
+      if (window.confirm(`Apagar a conta "${item.nome}"?`)) apagar();
+      return;
+    }
+    Alert.alert('Apagar conta', `Deseja apagar "${item.nome}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Apagar', style: 'destructive', onPress: apagar },
+    ]);
+  }
 
   if (carregando || !resumo) {
     return (
@@ -69,6 +91,8 @@ export default function PlanningScreen() {
         lancamentos={lancamentos}
         resumo={resumo}
         totalLancamentos={totalLancamentos}
+        editarConta={editarConta}
+        apagarConta={apagarConta}
       />
     );
   }
@@ -94,7 +118,7 @@ export default function PlanningScreen() {
           <Text style={[styles.vazio, { color: cores.textoSecundario }]}>Nenhuma conta recorrente cadastrada ainda.</Text>
         )}
         {lancamentos.map((item, i) => (
-          <View key={i} style={[styles.item, { borderBottomColor: cores.borda }]}>
+          <View key={item.id || i} style={[styles.item, { borderBottomColor: cores.borda }]}>
             <View style={styles.itemEsquerda}>
               <View style={[styles.itemDia, { backgroundColor: cores.card }]}>
                 <Text style={[styles.itemDiaTexto, { color: cores.texto }]}>{item.dia}</Text>
@@ -109,6 +133,14 @@ export default function PlanningScreen() {
             >
               {formatarReal(item.valor)}
             </Text>
+            <View style={styles.acoesItem}>
+              <TouchableOpacity onPress={() => editarConta(item)} accessibilityLabel={`Editar ${item.nome}`} style={styles.botaoAcao}>
+                <Ionicons name="create-outline" size={18} color={cores.primario} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => apagarConta(item)} accessibilityLabel={`Apagar ${item.nome}`} style={styles.botaoAcao}>
+                <Ionicons name="trash-outline" size={18} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
           </View>
         ))}
       </ScrollView>
@@ -116,7 +148,7 @@ export default function PlanningScreen() {
   );
 }
 
-function PlanningWeb({ cores, lancamentos, resumo, totalLancamentos }) {
+function PlanningWeb({ cores, lancamentos, resumo, totalLancamentos, editarConta, apagarConta }) {
   return (
     <SafeAreaView style={[webStyles.container, { backgroundColor: cores.fundo }]}>
       <ScrollView contentContainerStyle={webStyles.scrollContent}>
@@ -153,7 +185,7 @@ function PlanningWeb({ cores, lancamentos, resumo, totalLancamentos }) {
               <Text style={[webStyles.vazio, { color: cores.textoSecundario }]}>Nenhuma conta recorrente cadastrada ainda.</Text>
             )}
             {lancamentos.map((item, i) => (
-              <View key={i} style={[webStyles.item, { borderBottomColor: cores.borda }]}>
+              <View key={item.id || i} style={[webStyles.item, { borderBottomColor: cores.borda }]}>
                 <View style={webStyles.itemEsquerda}>
                   <View style={[webStyles.itemDia, { backgroundColor: cores.fundo }]}>
                     <Text style={[webStyles.itemDiaTexto, { color: cores.texto }]}>{item.dia}</Text>
@@ -168,6 +200,14 @@ function PlanningWeb({ cores, lancamentos, resumo, totalLancamentos }) {
                   <Text style={[webStyles.itemValor, { color: item.valor < 0 ? cores.texto : '#34C759' }]}>
                     {Math.abs(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </Text>
+                </View>
+                <View style={styles.acoesItem}>
+                  <TouchableOpacity onPress={() => editarConta(item)} accessibilityLabel={`Editar ${item.nome}`} style={styles.botaoAcao}>
+                    <Ionicons name="create-outline" size={18} color={cores.primario} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => apagarConta(item)} accessibilityLabel={`Apagar ${item.nome}`} style={styles.botaoAcao}>
+                    <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
@@ -248,4 +288,6 @@ const styles = StyleSheet.create({
   itemNome: { fontSize: 14, fontWeight: '500' },
   itemTipo: { fontSize: 12 },
   itemValor: { fontSize: 14, fontWeight: '500' },
+  acoesItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  botaoAcao: { padding: 8 },
 });

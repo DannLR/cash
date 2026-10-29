@@ -290,13 +290,14 @@ export async function getProximosLancamentos(mesReferencia) {
   const db = await getDb();
   const referencia = mesReferencia || referenciaMesAtual();
   const linhas = await db.getAllAsync(
-    `SELECT nome, valor, dia_vencimento, tipo, quantidade_parcelas, mes_inicio FROM contas_recorrentes
+    `SELECT id, nome, valor, dia_vencimento, tipo, quantidade_parcelas, mes_inicio FROM contas_recorrentes
      WHERE usuario_id = ? AND status = 'ativa' ORDER BY dia_vencimento ASC`,
     [USUARIO_ID]
   );
   return linhas
     .filter((l) => contaVisivelNoMes(l, referencia))
     .map((l) => ({
+      id: l.id,
       dia: String(l.dia_vencimento).padStart(2, '0'),
       nome: l.nome,
       tipo: l.tipo,
