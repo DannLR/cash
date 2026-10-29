@@ -2,6 +2,7 @@
   "expo": {
     "name": "Cash",
     "slug": "cash",
+    "scheme": "cash",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,7 +13,7 @@
     },
     "android": {
       "package": "com.cash.controlefinanceiro",
-      "versionCode": 11,
+      "versionCode": 12,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#8665B5"

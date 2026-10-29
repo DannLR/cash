@@ -51,8 +51,25 @@ CREATE TABLE IF NOT EXISTS cartoes (
 
 CREATE TABLE IF NOT EXISTS contas_pagamentos (
   id TEXT PRIMARY KEY,
+  usuario_id TEXT,
   conta_recorrente_id TEXT NOT NULL,
   mes_referencia TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sync_state (
+  chave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sync_outbox (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  id TEXT NOT NULL UNIQUE,
+  usuario_id TEXT NOT NULL,
+  entidade TEXT NOT NULL,
+  registro_id TEXT NOT NULL,
+  operacao TEXT NOT NULL,
+  payload TEXT,
+  criado_em TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS app_migrations (
@@ -85,9 +102,25 @@ async function ensureColuna(db, tabela, coluna, tipoSql) {
   }
 }
 
-const USUARIO_ID = 'usuario-1';
+export let USUARIO_ID = 'usuario-1';
 
 let dbInstance = null;
+let estruturaPreparada = false;
+const usuariosInicializados = new Set();
+let syncScheduler = null;
+let aplicandoDadosRemotos = false;
+
+export function setUsuarioAtual(id) {
+  USUARIO_ID = id || 'usuario-1';
+}
+
+export function registrarAgendadorDeSync(agendador) {
+  syncScheduler = agendador;
+}
+
+export function definirAplicacaoRemota(ativa) {
+  aplicandoDadosRemotos = ativa;
+}
 
 export function gerarId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -144,8 +177,8 @@ async function ensureCategoriasPadrao(db) {
 // (e não em meses passados, onde ainda não faziam sentido).
 async function ensureMesInicioContasAntigas(db) {
   await db.runAsync(
-    `UPDATE contas_recorrentes SET mes_inicio = ? WHERE mes_inicio IS NULL`,
-    [new Date().toISOString()]
+    `UPDATE contas_recorrentes SET mes_inicio = ? WHERE usuario_id = ? AND mes_inicio IS NULL`,
+    [new Date().toISOString(), USUARIO_ID]
   );
 }
 
@@ -154,14 +187,14 @@ async function ensureMesInicioContasAntigas(db) {
 // ter categoria (aparece sem ícone específico) — não é uma categoria com
 // uso real, então não há necessidade de reatribuir pra outra.
 async function ensureLimparCategoriaTeste(db) {
-  await db.runAsync(`DELETE FROM categorias WHERE nome = 'G g' AND padrao = 0`);
+  await db.runAsync(`DELETE FROM categorias WHERE usuario_id = ? AND nome = 'G g' AND padrao = 0`, [USUARIO_ID]);
 }
 
 // Remove uma assinatura de demonstração criada por versões antigas. A
 // migração roda uma única vez para não afetar uma assinatura legítima que
 // o usuário cadastre com os mesmos dados depois desta atualização.
 async function ensureRemoverAssinaturaDemonstracao(db) {
-  const idMigracao = 'remove-demo-video-subscription-v1';
+  const idMigracao = `remove-demo-video-subscription-v1:${USUARIO_ID}`;
   const executada = await db.getFirstAsync('SELECT id FROM app_migrations WHERE id = ?', [idMigracao]);
   if (executada) return;
 
@@ -182,7 +215,7 @@ async function ensureRemoverAssinaturaDemonstracao(db) {
 // de R$ 45,90 que aparecia no resumo). A lista é restrita aos valores, dias,
 // categorias e formas usados pelo seed original; só roda uma vez por banco.
 async function ensureRemoverMovimentacoesDemonstracao(db) {
-  const idMigracao = 'remove-demo-transactions-v1';
+  const idMigracao = `remove-demo-transactions-v1:${USUARIO_ID}`;
   const executada = await db.getFirstAsync('SELECT id FROM app_migrations WHERE id = ?', [idMigracao]);
   if (executada) return;
 
@@ -218,30 +251,118 @@ async function ensureRemoverMovimentacoesDemonstracao(db) {
   await db.runAsync('INSERT INTO app_migrations (id, executada_em) VALUES (?, ?)', [idMigracao, new Date().toISOString()]);
 }
 
+const TABELAS_SINCRONIZAVEIS = [
+  { tabela: 'usuarios', entidade: 'usuarios', usuario: 'id', campos: ['id', 'nome', 'saldo_inicial', 'onboarding_visto', 'notificacoes_ativas'] },
+  { tabela: 'categorias', entidade: 'categorias', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'nome', 'tipo', 'padrao', 'icone', 'cor'] },
+  { tabela: 'movimentacoes', entidade: 'movimentacoes', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'categoria_id', 'tipo', 'valor', 'data', 'forma_pagamento', 'origem', 'cartao_id', 'paga_referencia'] },
+  { tabela: 'contas_recorrentes', entidade: 'contas_recorrentes', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'categoria_id', 'tipo', 'nome', 'valor', 'dia_vencimento', 'status', 'cartao_id', 'quantidade_parcelas', 'mes_inicio', 'paga_referencia'] },
+  { tabela: 'cartoes', entidade: 'cartoes', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'apelido', 'bandeira', 'ultimos_digitos', 'limite', 'dia_vencimento', 'dia_fechamento'] },
+  { tabela: 'contas_pagamentos', entidade: 'contas_pagamentos', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'conta_recorrente_id', 'mes_referencia'] },
+  { tabela: 'metas', entidade: 'metas', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'nome', 'icone', 'valor_objetivo', 'valor_guardado', 'aporte_mensal'] },
+];
+
+async function criarTriggersDeSync(db) {
+  for (const config of TABELAS_SINCRONIZAVEIS) {
+    for (const acao of ['INSERT', 'UPDATE', 'DELETE']) {
+      const evento = acao.toLowerCase();
+      const linha = acao === 'DELETE' ? 'OLD' : 'NEW';
+      const nomes = config.campos.map((campo) => `'${campo}', ${linha}.${campo}`).join(', ');
+      await db.execAsync(`
+        CREATE TRIGGER IF NOT EXISTS sync_${config.entidade}_${evento}
+        AFTER ${acao} ON ${config.tabela}
+        WHEN COALESCE((SELECT valor FROM sync_state WHERE chave = 'aplicando_remoto'), '0') <> '1'
+        BEGIN
+          INSERT INTO sync_outbox (id, usuario_id, entidade, registro_id, operacao, payload, criado_em)
+          VALUES (
+            lower(hex(randomblob(16))), ${linha}.${config.usuario}, '${config.entidade}', ${linha}.id,
+            '${acao === 'DELETE' ? 'delete' : 'upsert'}',
+            ${acao === 'DELETE' ? 'NULL' : `json_object(${nomes})`},
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          );
+        END;
+      `);
+    }
+  }
+}
+
+async function migrarDadosLegados(db) {
+  if (USUARIO_ID === 'usuario-1') return;
+  const donoLegado = await db.getFirstAsync("SELECT valor FROM sync_state WHERE chave = 'dono_legado'");
+  if (donoLegado) return;
+
+  const dadosLegados = await db.getFirstAsync(
+    `SELECT
+      (SELECT COUNT(*) FROM movimentacoes WHERE usuario_id = 'usuario-1') +
+      (SELECT COUNT(*) FROM contas_recorrentes WHERE usuario_id = 'usuario-1') +
+      (SELECT COUNT(*) FROM cartoes WHERE usuario_id = 'usuario-1') +
+      (SELECT COUNT(*) FROM metas WHERE usuario_id = 'usuario-1') AS total`
+  );
+
+  await db.runAsync('UPDATE usuarios SET id = ? WHERE id = ?', [USUARIO_ID, 'usuario-1']);
+  for (const tabela of ['categorias', 'movimentacoes', 'contas_recorrentes', 'cartoes', 'metas', 'contas_pagamentos']) {
+    await db.runAsync(`UPDATE ${tabela} SET usuario_id = ? WHERE usuario_id = ?`, [USUARIO_ID, 'usuario-1']);
+  }
+  await db.runAsync("INSERT INTO sync_state (chave, valor) VALUES ('dono_legado', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor", [USUARIO_ID]);
+  if (dadosLegados?.total > 0) {
+    await db.runAsync(
+      'INSERT INTO sync_state (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor',
+      [`importacao_legada:${USUARIO_ID}`, '1']
+    );
+  }
+}
+
 export async function getDb() {
-  if (dbInstance) return dbInstance;
-  dbInstance = await SQLite.openDatabaseAsync('app-financeiro.db');
-  await dbInstance.execAsync(SCHEMA_SQL);
-  await ensureColuna(dbInstance, 'contas_recorrentes', 'cartao_id', 'TEXT');
-  await ensureColuna(dbInstance, 'contas_recorrentes', 'quantidade_parcelas', 'INTEGER');
-  await ensureColuna(dbInstance, 'contas_recorrentes', 'mes_inicio', 'TEXT');
-  await ensureColuna(dbInstance, 'contas_recorrentes', 'paga_referencia', 'TEXT');
-  await ensureColuna(dbInstance, 'movimentacoes', 'cartao_id', 'TEXT');
-  await ensureColuna(dbInstance, 'movimentacoes', 'paga_referencia', 'TEXT');
-  await ensureColuna(dbInstance, 'cartoes', 'limite', 'REAL');
-  await ensureColuna(dbInstance, 'cartoes', 'dia_vencimento', 'INTEGER');
-  await ensureColuna(dbInstance, 'cartoes', 'dia_fechamento', 'INTEGER');
-  await ensureColuna(dbInstance, 'usuarios', 'onboarding_visto', 'INTEGER DEFAULT 0');
-  await ensureColuna(dbInstance, 'usuarios', 'notificacoes_ativas', 'INTEGER DEFAULT 1');
-  await ensureColuna(dbInstance, 'categorias', 'icone', "TEXT DEFAULT 'pricetag-outline'");
-  await ensureColuna(dbInstance, 'categorias', 'cor', "TEXT DEFAULT '#0F766E'");
-  await ensureUsuario(dbInstance);
-  await ensureCategoriasPadrao(dbInstance);
-  await ensureMesInicioContasAntigas(dbInstance);
-  await ensureLimparCategoriaTeste(dbInstance);
-  await ensureRemoverAssinaturaDemonstracao(dbInstance);
-  await ensureRemoverMovimentacoesDemonstracao(dbInstance);
+  if (!dbInstance) dbInstance = await SQLite.openDatabaseAsync('app-financeiro.db');
+
+  if (!estruturaPreparada) {
+    await dbInstance.execAsync(SCHEMA_SQL);
+    await ensureColuna(dbInstance, 'contas_recorrentes', 'cartao_id', 'TEXT');
+    await ensureColuna(dbInstance, 'contas_recorrentes', 'quantidade_parcelas', 'INTEGER');
+    await ensureColuna(dbInstance, 'contas_recorrentes', 'mes_inicio', 'TEXT');
+    await ensureColuna(dbInstance, 'contas_recorrentes', 'paga_referencia', 'TEXT');
+    await ensureColuna(dbInstance, 'movimentacoes', 'cartao_id', 'TEXT');
+    await ensureColuna(dbInstance, 'movimentacoes', 'paga_referencia', 'TEXT');
+    await ensureColuna(dbInstance, 'cartoes', 'limite', 'REAL');
+    await ensureColuna(dbInstance, 'cartoes', 'dia_vencimento', 'INTEGER');
+    await ensureColuna(dbInstance, 'cartoes', 'dia_fechamento', 'INTEGER');
+    await ensureColuna(dbInstance, 'usuarios', 'onboarding_visto', 'INTEGER DEFAULT 0');
+    await ensureColuna(dbInstance, 'usuarios', 'notificacoes_ativas', 'INTEGER DEFAULT 1');
+    await ensureColuna(dbInstance, 'categorias', 'icone', "TEXT DEFAULT 'pricetag-outline'");
+    await ensureColuna(dbInstance, 'categorias', 'cor', "TEXT DEFAULT '#0F766E'");
+    await ensureColuna(dbInstance, 'contas_pagamentos', 'usuario_id', 'TEXT');
+    await dbInstance.runAsync(
+      `UPDATE contas_pagamentos SET usuario_id = (
+        SELECT usuario_id FROM contas_recorrentes WHERE contas_recorrentes.id = contas_pagamentos.conta_recorrente_id
+      ) WHERE usuario_id IS NULL`
+    );
+    await dbInstance.execAsync(`
+      CREATE TABLE IF NOT EXISTS sync_state (chave TEXT PRIMARY KEY, valor TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS sync_outbox (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, usuario_id TEXT NOT NULL,
+        entidade TEXT NOT NULL, registro_id TEXT NOT NULL, operacao TEXT NOT NULL, payload TEXT, criado_em TEXT NOT NULL
+      );
+    `);
+    await criarTriggersDeSync(dbInstance);
+    const runAsyncOriginal = dbInstance.runAsync.bind(dbInstance);
+    dbInstance.runAsync = async (...args) => {
+      const result = await runAsyncOriginal(...args);
+      if (!aplicandoDadosRemotos && syncScheduler) syncScheduler(USUARIO_ID);
+      return result;
+    };
+    estruturaPreparada = true;
+  }
+
+  if (!usuariosInicializados.has(USUARIO_ID)) {
+    await migrarDadosLegados(dbInstance);
+    await ensureUsuario(dbInstance);
+    await ensureCategoriasPadrao(dbInstance);
+    await ensureMesInicioContasAntigas(dbInstance);
+    await ensureLimparCategoriaTeste(dbInstance);
+    await ensureRemoverAssinaturaDemonstracao(dbInstance);
+    await ensureRemoverMovimentacoesDemonstracao(dbInstance);
+    usuariosInicializados.add(USUARIO_ID);
+  }
+
   return dbInstance;
 }
 
-export { USUARIO_ID };

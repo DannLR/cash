@@ -35,12 +35,15 @@ import AddGoalScreen from './screens/AddGoalScreen';
 import GoalDetailScreen from './screens/GoalDetailScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import SubscriptionsScreen from './screens/SubscriptionsScreen';
+import AuthScreen from './screens/AuthScreen';
 
-import { getDb } from './database/db';
+import { getDb, setUsuarioAtual } from './database/db';
 import { getOnboardingVisto, marcarOnboardingVisto } from './database/queries';
 import LoadingScreen from './components/LoadingScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import { reagendarLembretes } from './utils/notifications';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { iniciarSincronizacao } from './services/sync';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -245,31 +248,70 @@ function Tabs({ onAbrirMenu }) {
 }
 
 function AppPrincipal() {
+  const { session, carregando: authCarregando, recuperacaoSenha } = useAuth();
   const [menuVisivel, setMenuVisivel] = useState(false);
   const [pronto, setPronto] = useState(false);
   const [onboardingVisto, setOnboardingVisto] = useState(true);
+  const [avisoSync, setAvisoSync] = useState('');
+  const [erroInicializacao, setErroInicializacao] = useState('');
 
   // Garante que o banco de dados (e suas migrações) já esteja pronto antes
   // de mostrar qualquer tela — evita telas piscando "carregando" uma por
   // uma logo na abertura do app. Um tempo mínimo de exibição evita que o
   // loading pisque rápido demais pra perceber quando o banco já existe.
   React.useEffect(() => {
+    if (authCarregando) return undefined;
+    if (!session?.user?.id || recuperacaoSenha) {
+      setPronto(false);
+      setAvisoSync('');
+      setErroInicializacao('');
+      return undefined;
+    }
+
+    let ativo = true;
+    let pararSync = null;
+    setPronto(false);
+    setErroInicializacao('');
+    setUsuarioAtual(session.user.id);
     const inicio = Date.now();
     getDb().then(async () => {
-      reagendarLembretes(); // não bloqueia a tela — roda em segundo plano
+      if (!ativo) return;
+      const monitorSync = iniciarSincronizacao(session.user.id);
+      pararSync = monitorSync.parar;
+      const falhaSync = await monitorSync.primeiraSync;
+      if (ativo && falhaSync) {
+        setAvisoSync('A conta entrou, mas a sincronização está aguardando a configuração do banco online ou uma conexão.');
+      } else if (ativo) {
+        setAvisoSync('');
+      }
+      if (!ativo) return;
+      reagendarLembretes();
       const visto = await getOnboardingVisto();
-      setOnboardingVisto(visto);
+      if (ativo) setOnboardingVisto(visto);
       const decorrido = Date.now() - inicio;
       const espera = Math.max(3000 - decorrido, 0);
-      setTimeout(() => setPronto(true), espera);
+      setTimeout(() => { if (ativo) setPronto(true); }, espera);
+    }).catch((erro) => {
+      console.error('Erro ao iniciar o Cash:', erro);
+      if (ativo) setErroInicializacao('Não foi possível preparar seus dados neste dispositivo. Tente fechar e abrir o app novamente.');
     });
-  }, []);
+    return () => {
+      ativo = false;
+      if (pararSync) pararSync();
+    };
+  }, [authCarregando, session?.user?.id, recuperacaoSenha]);
 
   async function finalizarOnboarding() {
     await marcarOnboardingVisto();
     setOnboardingVisto(true);
   }
 
+  if (authCarregando) return <LoadingScreen />;
+  if (!session) return <AuthScreen />;
+  if (recuperacaoSenha) return <AuthScreen modoRedefinicao />;
+  if (erroInicializacao) {
+    return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F0EDF2' }}><Text style={{ textAlign: 'center', color: '#7F1D1D' }}>{erroInicializacao}</Text></View>;
+  }
   if (!pronto) {
     return <LoadingScreen />;
   }
@@ -279,6 +321,7 @@ function AppPrincipal() {
   }
 
   return (
+    <View style={{ flex: 1 }}>
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs">
@@ -356,6 +399,8 @@ function AppPrincipal() {
         </Pressable>
       </Modal>
     </NavigationContainer>
+    {!!avisoSync && <View style={styles.avisoSincronizacao}><Ionicons name="cloud-offline-outline" size={16} color="#744A14" /><Text style={styles.avisoSincronizacaoTexto}>{avisoSync}</Text></View>}
+    </View>
   );
 }
 
@@ -363,15 +408,19 @@ function AppPrincipal() {
 // que disponibiliza o tema (claro/escuro) para toda a árvore de telas.
 export default function App() {
   return (
-    <ThemeProvider>
-      <MonthProvider>
-        <AppPrincipal />
-      </MonthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <MonthProvider>
+          <AppPrincipal />
+        </MonthProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  avisoSincronizacao: { position: 'absolute', bottom: Platform.OS === 'web' ? 14 : 72, left: 14, right: 14, zIndex: 500, backgroundColor: '#FEF3C7', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  avisoSincronizacaoTexto: { flex: 1, fontSize: 11, lineHeight: 16, color: '#744A14' },
   sidebarWeb: {
     width: 72,
     height: '100%',

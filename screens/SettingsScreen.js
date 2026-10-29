@@ -1,14 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, Switch, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getNotificacoesAtivas, definirNotificacoesAtivas } from '../database/queries';
 import { reagendarLembretes } from '../utils/notifications';
 import { useTema } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { sincronizarAgora } from '../services/sync';
 
 export default function SettingsScreen({ navigation }) {
   const { modoEscuro, alternarTema, cores } = useTema();
+  const { usuario, sair } = useAuth();
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
+  const [saindo, setSaindo] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -24,6 +28,19 @@ export default function SettingsScreen({ navigation }) {
     reagendarLembretes(); // agenda de novo ou cancela tudo, conforme o novo valor
   }
 
+  async function encerrarSessao() {
+    setSaindo(true);
+    try {
+      if (usuario?.id) await sincronizarAgora(usuario.id);
+      await sair();
+    } catch (erro) {
+      console.warn('A sessão será encerrada; os dados locais continuarão aguardando sincronização:', erro.message);
+      await sair();
+    } finally {
+      setSaindo(false);
+    }
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: cores.fundo }]}>
       <View style={styles.header}>
@@ -35,6 +52,19 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={[styles.secaoTitulo, { color: cores.textoSecundario }]}>Conta</Text>
+        <View style={[styles.card, { backgroundColor: cores.card }]}>
+          <View style={styles.linha}>
+            <View style={styles.linhaEsquerda}>
+              <Ionicons name="person-circle-outline" size={20} color={cores.primario} />
+              <Text style={[styles.linhaTexto, { color: cores.texto }]}>{usuario?.email || 'Usuário'}</Text>
+            </View>
+            <TouchableOpacity onPress={encerrarSessao} disabled={saindo} accessibilityLabel="Sair da conta">
+              {saindo ? <ActivityIndicator color={cores.primario} /> : <Ionicons name="log-out-outline" size={20} color={cores.primario} />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <Text style={[styles.secaoTitulo, { color: cores.textoSecundario }]}>Aparência</Text>
         <View style={[styles.card, { backgroundColor: cores.card }]}>
           <View style={styles.linha}>

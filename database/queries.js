@@ -96,8 +96,8 @@ export async function alternarContaPaga(contaId, mesReferencia, estaPagaAtualmen
     );
   } else {
     await db.runAsync(
-      'INSERT OR IGNORE INTO contas_pagamentos (id, conta_recorrente_id, mes_referencia) VALUES (?, ?, ?)',
-      [gerarIdLocal(), contaId, mesReferencia]
+      'INSERT OR IGNORE INTO contas_pagamentos (id, usuario_id, conta_recorrente_id, mes_referencia) VALUES (?, ?, ?, ?)',
+      [gerarIdLocal(), USUARIO_ID, contaId, mesReferencia]
     );
   }
 }
