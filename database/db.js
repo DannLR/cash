@@ -55,6 +55,11 @@ CREATE TABLE IF NOT EXISTS contas_pagamentos (
   mes_referencia TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS app_migrations (
+  id TEXT PRIMARY KEY,
+  executada_em TEXT NOT NULL
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_contas_pagamentos_unico
   ON contas_pagamentos (conta_recorrente_id, mes_referencia);
 
@@ -152,6 +157,27 @@ async function ensureLimparCategoriaTeste(db) {
   await db.runAsync(`DELETE FROM categorias WHERE nome = 'G g' AND padrao = 0`);
 }
 
+// Remove uma assinatura de demonstração criada por versões antigas. A
+// migração roda uma única vez para não afetar uma assinatura legítima que
+// o usuário cadastre com os mesmos dados depois desta atualização.
+async function ensureRemoverAssinaturaDemonstracao(db) {
+  const idMigracao = 'remove-demo-video-subscription-v1';
+  const executada = await db.getFirstAsync('SELECT id FROM app_migrations WHERE id = ?', [idMigracao]);
+  if (executada) return;
+
+  const exemplo = await db.getFirstAsync(
+    `SELECT id FROM contas_recorrentes
+     WHERE usuario_id = ? AND tipo = 'assinatura' AND nome = ? AND valor = ? AND dia_vencimento = ?`,
+    [USUARIO_ID, 'Streaming de vídeo', 45, 12]
+  );
+  if (exemplo) {
+    await db.runAsync('DELETE FROM contas_pagamentos WHERE conta_recorrente_id = ?', [exemplo.id]);
+    await db.runAsync('DELETE FROM contas_recorrentes WHERE id = ?', [exemplo.id]);
+  }
+
+  await db.runAsync('INSERT INTO app_migrations (id, executada_em) VALUES (?, ?)', [idMigracao, new Date().toISOString()]);
+}
+
 export async function getDb() {
   if (dbInstance) return dbInstance;
   dbInstance = await SQLite.openDatabaseAsync('app-financeiro.db');
@@ -173,6 +199,7 @@ export async function getDb() {
   await ensureCategoriasPadrao(dbInstance);
   await ensureMesInicioContasAntigas(dbInstance);
   await ensureLimparCategoriaTeste(dbInstance);
+  await ensureRemoverAssinaturaDemonstracao(dbInstance);
   return dbInstance;
 }
 
