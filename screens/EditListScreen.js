@@ -92,9 +92,9 @@ export default function EditListScreen({ navigation, route }) {
     const lista =
       modo === 'movimentacao'
         ? await getMovimentacoesPorTipo(tipo, referencia)
-        : await getContasRecorrentesEditaveis(referencia);
+        : await getContasRecorrentesEditaveis(referencia, contaId);
     const idFiltrado = contaId || movimentacaoId;
-    const itensFiltrados = idFiltrado ? lista.filter((item) => item.id === idFiltrado) : lista;
+    const itensFiltrados = idFiltrado ? lista.filter((item) => String(item.id) === String(idFiltrado)) : lista;
     setItens(itensFiltrados);
     if (idFiltrado && itensFiltrados[0]) {
       iniciarEdicao(itensFiltrados[0]);

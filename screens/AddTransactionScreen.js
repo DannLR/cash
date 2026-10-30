@@ -17,6 +17,7 @@ import { salvarMovimentacao, salvarContaRecorrente, getCartoes, getMapaCategoria
 import { useTema } from '../context/ThemeContext';
 import WebPageHeader from '../components/WebPageHeader';
 import PageIntro from '../components/PageIntro';
+import { parseValorMoeda } from '../utils/moeda';
 
 const CATEGORIAS_ENTRADA = ['Salário', 'Comissão', 'Renda extra', 'Outros'];
 const CATEGORIAS_SAIDA = [
@@ -131,7 +132,7 @@ export default function AddTransactionScreen({ navigation, route }) {
   const podeVirarFixa = tipo === 'saida' && ['pix', 'dinheiro', 'boleto'].includes(forma);
 
   function podeAvancar() {
-    if (passo === 1) return !!valor && parseFloat(valor.replace(',', '.')) > 0;
+    if (passo === 1) return !!valor && parseValorMoeda(valor) > 0;
     if (passo === 2) return categoria === 'Outros' ? !!categoriaCustom.trim() : !!categoria;
     if (passo === 3) {
       const cartaoOk = !['debito', 'credito'].includes(forma) || !!cartaoId;
@@ -155,7 +156,7 @@ export default function AddTransactionScreen({ navigation, route }) {
         parseInt(mesStr, 10) - 1,
         parseInt(diaStr, 10)
       ).toISOString();
-      const valorTotal = parseFloat(valor.replace(',', '.'));
+      const valorTotal = parseValorMoeda(valor);
 
       if (ehCredito) {
         const numeroParcelas = parseInt(parcelas, 10) || 1;
@@ -397,7 +398,7 @@ export default function AddTransactionScreen({ navigation, route }) {
                       <Text style={[styles.parcelasNumero, { color: cores.texto }]}>{parcelas || '1'}x</Text>
                       {parseInt(parcelas, 10) > 1 && !!valor && (
                         <Text style={[styles.parcelasValor, { color: cores.textoSecundario }]}>
-                          de R$ {(parseFloat(valor.replace(',', '.')) / parseInt(parcelas, 10)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          de R$ {(parseValorMoeda(valor) / parseInt(parcelas, 10)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Text>
                       )}
                     </View>

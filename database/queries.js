@@ -122,11 +122,7 @@ export async function calcularResumoMensal(ano, mes) {
   );
 
   const entrou = somaEntradas.total;
-  const gasto = somaSaidas.total;
-  // Saldo disponível é só o que entrou menos o que saiu neste mês — sem
-  // saldo inicial manual. Como "entrou"/"gasto" são somas do mês em
-  // questão, o saldo zera sozinho a cada novo mês.
-  const saldoDisponivel = entrou - gasto;
+  const gastoRealizado = somaSaidas.total;
 
   // "Previsto": soma das contas recorrentes ativas, excluindo parcelas que
   // já terminaram.
@@ -137,6 +133,13 @@ export async function calcularResumoMensal(ano, mes) {
   );
   const recorrentesAtivas = recorrentesRaw.filter((c) => contaVisivelNoMes(c, referencia));
   const previsto = recorrentesAtivas.reduce((soma, c) => soma + c.valor, 0);
+
+  // "Gastos" reúne as saídas já lançadas e todos os compromissos ativos do
+  // mês: contas fixas, parcelas e assinaturas. Compras no cartão lançadas
+  // como movimentações já estão em gastoRealizado.
+  const gasto = gastoRealizado + previsto;
+  // O saldo disponível mostra o que entrou menos o que já saiu de fato.
+  const saldoDisponivel = entrou - gastoRealizado;
 
   const saldoLivreReal = saldoDisponivel - previsto;
 
@@ -273,15 +276,15 @@ export async function getGastosAvulsos(mesReferencia) {
   const [anoRef, mesRef] = referencia.split('-').map(Number);
   const { inicio, fim } = limitesDoMes(anoRef, mesRef - 1);
   const linhas = await db.getAllAsync(
-    `SELECT m.id, m.valor, m.data, m.forma_pagamento, m.paga_referencia, c.nome AS categoriaNome, cart.apelido AS cartaoApelido
+    `SELECT m.id, m.valor, m.data, m.forma_pagamento, m.paga_referencia, m.origem, m.descricao, c.nome AS categoriaNome, cart.apelido AS cartaoApelido
      FROM movimentacoes m LEFT JOIN categorias c ON c.id = m.categoria_id
      LEFT JOIN cartoes cart ON cart.id = m.cartao_id
-     WHERE m.usuario_id = ? AND m.tipo = 'saida' AND m.forma_pagamento IN ('pix', 'dinheiro', 'debito', 'boleto')
+     WHERE m.usuario_id = ? AND m.tipo = 'saida' AND m.forma_pagamento IN ('pix', 'dinheiro', 'debito', 'boleto', 'notificacao')
        AND m.data BETWEEN ? AND ?
      ORDER BY m.data DESC`,
     [USUARIO_ID, inicio, fim]
   );
-  return linhas.map((l) => ({ id: l.id, nome: l.categoriaNome || 'Outros', valor: l.valor, data: l.data, formaPagamento: l.forma_pagamento, cartaoApelido: l.cartaoApelido, estaPaga: l.paga_referencia === referencia }));
+  return linhas.map((l) => ({ id: l.id, nome: l.categoriaNome || 'Outros', valor: l.valor, data: l.data, formaPagamento: l.forma_pagamento, cartaoApelido: l.cartaoApelido, origem: l.origem, descricao: l.descricao, estaPaga: l.paga_referencia === referencia }));
 }
 
 // ---- Planejamento ----
@@ -455,7 +458,7 @@ export async function alternarMovimentacaoPaga(id, estaPaga) {
   );
 }
 
-export async function getContasRecorrentesEditaveis(mesReferencia) {
+export async function getContasRecorrentesEditaveis(mesReferencia, contaId = null) {
   const db = await getDb();
   const referencia = mesReferencia || referenciaMesAtual();
   const linhas = await db.getAllAsync(
@@ -466,7 +469,9 @@ export async function getContasRecorrentesEditaveis(mesReferencia) {
   );
   const pagasIds = await idsContasPagasNoMes(db, referencia);
   return linhas
-    .filter((l) => contaVisivelNoMes(l, referencia))
+    // Ao editar por ID, não aplique o filtro de mês: contas de cartão
+    // podem continuar editáveis mesmo quando não aparecem na fatura atual.
+    .filter((l) => contaId ? String(l.id) === String(contaId) : contaVisivelNoMes(l, referencia))
     .map((l) => ({
       id: l.id,
       nome: l.nome,
@@ -746,7 +751,7 @@ export async function salvarContaRecorrente({ tipo, nome, valor, diaVencimento, 
 }
 
 // Insere uma nova movimentação no banco.
-export async function salvarMovimentacao({ tipo, valor, categoriaNome, data, formaPagamento, cartaoId = null }) {
+export async function salvarMovimentacao({ tipo, valor, categoriaNome, data, formaPagamento, cartaoId = null, descricao = null }) {
   const db = await getDb();
 
   let categoria = await db.getFirstAsync(
@@ -766,7 +771,72 @@ export async function salvarMovimentacao({ tipo, valor, categoriaNome, data, for
 
   const id = gerarIdLocal();
   await db.runAsync(
-    'INSERT INTO movimentacoes (id, usuario_id, categoria_id, tipo, valor, data, forma_pagamento, origem, cartao_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, USUARIO_ID, categoriaId, tipo, valor, data, formaPagamento, 'avulsa', cartaoId]
+    'INSERT INTO movimentacoes (id, usuario_id, categoria_id, tipo, valor, data, forma_pagamento, origem, cartao_id, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, USUARIO_ID, categoriaId, tipo, valor, data, formaPagamento, descricao ? 'notificacao' : 'avulsa', cartaoId, descricao]
   );
+}
+
+export async function importarCompraNotificada(compra, dadosEditados = {}) {
+  const db = await getDb();
+  const valor = Number(dadosEditados.valor ?? compra.valor);
+  const categoriaNome = String(dadosEditados.categoriaNome || 'Compras').trim() || 'Compras';
+  const data = dadosEditados.data || compra.data;
+  const descricao = String(dadosEditados.descricao || '').trim() || `Compra via ${compra.origem || 'notificação'}`;
+  const formaPagamento = dadosEditados.formaPagamento || 'notificacao';
+  const cartaoId = dadosEditados.cartaoId || null;
+  const quantidadeParcelas = Math.max(1, parseInt(dadosEditados.quantidadeParcelas, 10) || 1);
+  if (!Number.isFinite(valor) || valor <= 0 || !data) throw new Error('Informe um valor e uma data válidos.');
+  let importada = false;
+  await db.withTransactionAsync(async () => {
+    const existente = await db.getFirstAsync(
+      'SELECT event_id FROM notificacoes_compras_importadas WHERE event_id = ?',
+      [compra.id]
+    );
+    if (existente) return;
+
+    let categoria = await db.getFirstAsync(
+      'SELECT id FROM categorias WHERE usuario_id = ? AND nome = ? AND tipo = \'saida\'',
+      [USUARIO_ID, categoriaNome]
+    );
+    let categoriaId = categoria?.id;
+    if (!categoriaId) {
+      categoriaId = gerarIdLocal();
+      await db.runAsync(
+        'INSERT INTO categorias (id, usuario_id, nome, tipo, padrao) VALUES (?, ?, ?, ?, 0)',
+        [categoriaId, USUARIO_ID, categoriaNome, 'saida']
+      );
+    }
+
+    if (formaPagamento === 'credito') {
+      const cartao = await db.getFirstAsync(
+        'SELECT id, dia_vencimento FROM cartoes WHERE id = ? AND usuario_id = ?',
+        [cartaoId, USUARIO_ID]
+      );
+      if (!cartao) throw new Error('Selecione o cartão de crédito usado na compra.');
+      const dataCompra = new Date(data);
+      const valorParcela = Math.round((valor / quantidadeParcelas) * 100) / 100;
+      await db.runAsync(
+        'INSERT INTO contas_recorrentes (id, usuario_id, categoria_id, tipo, nome, valor, dia_vencimento, status, cartao_id, quantidade_parcelas, mes_inicio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [gerarIdLocal(), USUARIO_ID, categoriaId, 'parcela', descricao, valorParcela, cartao.dia_vencimento || dataCompra.getDate(), 'ativa', cartaoId, quantidadeParcelas, dataCompra.toISOString()]
+      );
+    } else {
+      if (formaPagamento === 'debito') {
+        const cartao = await db.getFirstAsync(
+          'SELECT id FROM cartoes WHERE id = ? AND usuario_id = ?',
+          [cartaoId, USUARIO_ID]
+        );
+        if (!cartao) throw new Error('Selecione o cartão de débito usado na compra.');
+      }
+      await db.runAsync(
+        'INSERT INTO movimentacoes (id, usuario_id, categoria_id, tipo, valor, data, forma_pagamento, origem, cartao_id, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [gerarIdLocal(), USUARIO_ID, categoriaId, 'saida', valor, new Date(data).toISOString(), formaPagamento === 'debito' ? 'debito' : 'notificacao', 'notificacao', formaPagamento === 'debito' ? cartaoId : null, descricao]
+      );
+    }
+    await db.runAsync(
+      'INSERT INTO notificacoes_compras_importadas (event_id, importada_em) VALUES (?, ?)',
+      [compra.id, new Date().toISOString()]
+    );
+    importada = true;
+  });
+  return importada;
 }

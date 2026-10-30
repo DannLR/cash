@@ -9,7 +9,7 @@ import { supabase } from './supabase';
 const ENTIDADES = {
   usuarios: ['usuarios', ['id', 'nome', 'saldo_inicial', 'onboarding_visto', 'notificacoes_ativas']],
   categorias: ['categorias', ['id', 'usuario_id', 'nome', 'tipo', 'padrao', 'icone', 'cor']],
-  movimentacoes: ['movimentacoes', ['id', 'usuario_id', 'categoria_id', 'tipo', 'valor', 'data', 'forma_pagamento', 'origem', 'cartao_id', 'paga_referencia']],
+  movimentacoes: ['movimentacoes', ['id', 'usuario_id', 'categoria_id', 'tipo', 'valor', 'data', 'forma_pagamento', 'origem', 'cartao_id', 'paga_referencia', 'descricao']],
   contas_recorrentes: ['contas_recorrentes', ['id', 'usuario_id', 'categoria_id', 'tipo', 'nome', 'valor', 'dia_vencimento', 'status', 'cartao_id', 'quantidade_parcelas', 'mes_inicio', 'paga_referencia']],
   cartoes: ['cartoes', ['id', 'usuario_id', 'apelido', 'bandeira', 'ultimos_digitos', 'limite', 'dia_vencimento', 'dia_fechamento']],
   contas_pagamentos: ['contas_pagamentos', ['id', 'usuario_id', 'conta_recorrente_id', 'mes_referencia']],

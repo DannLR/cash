@@ -16,6 +16,7 @@ import { salvarContaRecorrente, getCartoes } from '../database/queries';
 import { useTema } from '../context/ThemeContext';
 import WebPageHeader from '../components/WebPageHeader';
 import PageIntro from '../components/PageIntro';
+import { parseValorMoeda } from '../utils/moeda';
 
 const TIPOS = [
   { chave: 'fixa', label: 'Conta fixa', descricao: 'aluguel, energia, internet...', icone: 'home-outline' },
@@ -54,7 +55,7 @@ export default function AddRecurringScreen({ navigation, route }) {
       return (
         !!nome.trim() &&
         !!valor &&
-        parseFloat(valor.replace(',', '.')) > 0 &&
+        parseValorMoeda(valor) > 0 &&
         (tipo === 'parcela' || (!!diaVencimento && parseInt(diaVencimento, 10) >= 1 && parseInt(diaVencimento, 10) <= 31)) &&
         (tipo === 'fixa' || !!cartaoId) &&
         (tipo !== 'parcela' || (parseInt(quantidadeParcelas, 10) >= 1))
@@ -74,7 +75,7 @@ export default function AddRecurringScreen({ navigation, route }) {
       await salvarContaRecorrente({
         tipo,
         nome: nome.trim(),
-        valor: parseFloat(valor.replace(',', '.')),
+        valor: parseValorMoeda(valor),
         diaVencimento: tipo === 'parcela' ? 1 : parseInt(diaVencimento, 10),
         categoriaNome: nome.trim(),
         cartaoId,

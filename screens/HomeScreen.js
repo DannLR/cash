@@ -411,6 +411,17 @@ function HomeWeb({
               <Text style={[webStyles.monthButtonText, { color: cores.texto }]}>{label}</Text>
               <Ionicons name="chevron-down" size={14} color={cores.textoSecundario} />
             </TouchableOpacity>
+            {(mobileLayout || Platform.OS !== 'web') && (
+              <TouchableOpacity
+                style={[webStyles.monthButton, webStyles.mobileSettingsButton, { backgroundColor: cores.card, borderColor: cores.borda }]}
+                onPress={() => navigationRef.navigate('Configuracoes')}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Abrir configurações"
+              >
+                <Ionicons name="settings-outline" size={16} color={cores.textoSecundario} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[webStyles.addButton, mobileLayout && webStyles.mobileAddButton]}
               onPress={() => navigationRef.navigate('AdicionarMovimentacao')}
@@ -789,6 +800,7 @@ const webStyles = StyleSheet.create({
   mobileBalanceTopValue: { fontSize: 20 },
   monthButton: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, height: 38 },
   mobileMonthButton: { flex: 1, justifyContent: 'center', height: 36, paddingHorizontal: 9, gap: 6 },
+  mobileSettingsButton: { width: 36, height: 36, paddingHorizontal: 0, justifyContent: 'center' },
   monthButtonText: { fontSize: 12, fontWeight: '600' },
   addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, height: 38, paddingHorizontal: 13, backgroundColor: '#211D28' },
   mobileAddButton: { height: 36, paddingHorizontal: 10, gap: 4 },

@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS movimentacoes (
   valor REAL NOT NULL,
   data TEXT NOT NULL,
   forma_pagamento TEXT NOT NULL,
-  origem TEXT NOT NULL DEFAULT 'avulsa'
+  origem TEXT NOT NULL DEFAULT 'avulsa',
+  descricao TEXT
 );
 
 CREATE TABLE IF NOT EXISTS contas_recorrentes (
@@ -59,6 +60,11 @@ CREATE TABLE IF NOT EXISTS contas_pagamentos (
 CREATE TABLE IF NOT EXISTS sync_state (
   chave TEXT PRIMARY KEY,
   valor TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notificacoes_compras_importadas (
+  event_id TEXT PRIMARY KEY,
+  importada_em TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sync_outbox (
@@ -254,7 +260,7 @@ async function ensureRemoverMovimentacoesDemonstracao(db) {
 const TABELAS_SINCRONIZAVEIS = [
   { tabela: 'usuarios', entidade: 'usuarios', usuario: 'id', campos: ['id', 'nome', 'saldo_inicial', 'onboarding_visto', 'notificacoes_ativas'] },
   { tabela: 'categorias', entidade: 'categorias', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'nome', 'tipo', 'padrao', 'icone', 'cor'] },
-  { tabela: 'movimentacoes', entidade: 'movimentacoes', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'categoria_id', 'tipo', 'valor', 'data', 'forma_pagamento', 'origem', 'cartao_id', 'paga_referencia'] },
+  { tabela: 'movimentacoes', entidade: 'movimentacoes', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'categoria_id', 'tipo', 'valor', 'data', 'forma_pagamento', 'origem', 'cartao_id', 'paga_referencia', 'descricao'] },
   { tabela: 'contas_recorrentes', entidade: 'contas_recorrentes', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'categoria_id', 'tipo', 'nome', 'valor', 'dia_vencimento', 'status', 'cartao_id', 'quantidade_parcelas', 'mes_inicio', 'paga_referencia'] },
   { tabela: 'cartoes', entidade: 'cartoes', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'apelido', 'bandeira', 'ultimos_digitos', 'limite', 'dia_vencimento', 'dia_fechamento'] },
   { tabela: 'contas_pagamentos', entidade: 'contas_pagamentos', usuario: 'usuario_id', campos: ['id', 'usuario_id', 'conta_recorrente_id', 'mes_referencia'] },
@@ -268,7 +274,8 @@ async function criarTriggersDeSync(db) {
       const linha = acao === 'DELETE' ? 'OLD' : 'NEW';
       const nomes = config.campos.map((campo) => `'${campo}', ${linha}.${campo}`).join(', ');
       await db.execAsync(`
-        CREATE TRIGGER IF NOT EXISTS sync_${config.entidade}_${evento}
+        DROP TRIGGER IF EXISTS sync_${config.entidade}_${evento};
+        CREATE TRIGGER sync_${config.entidade}_${evento}
         AFTER ${acao} ON ${config.tabela}
         WHEN COALESCE((SELECT valor FROM sync_state WHERE chave = 'aplicando_remoto'), '0') <> '1'
         BEGIN
@@ -322,6 +329,7 @@ export async function getDb() {
     await ensureColuna(dbInstance, 'contas_recorrentes', 'paga_referencia', 'TEXT');
     await ensureColuna(dbInstance, 'movimentacoes', 'cartao_id', 'TEXT');
     await ensureColuna(dbInstance, 'movimentacoes', 'paga_referencia', 'TEXT');
+    await ensureColuna(dbInstance, 'movimentacoes', 'descricao', 'TEXT');
     await ensureColuna(dbInstance, 'cartoes', 'limite', 'REAL');
     await ensureColuna(dbInstance, 'cartoes', 'dia_vencimento', 'INTEGER');
     await ensureColuna(dbInstance, 'cartoes', 'dia_fechamento', 'INTEGER');
@@ -337,6 +345,7 @@ export async function getDb() {
     );
     await dbInstance.execAsync(`
       CREATE TABLE IF NOT EXISTS sync_state (chave TEXT PRIMARY KEY, valor TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS notificacoes_compras_importadas (event_id TEXT PRIMARY KEY, importada_em TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS sync_outbox (
         seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, usuario_id TEXT NOT NULL,
         entidade TEXT NOT NULL, registro_id TEXT NOT NULL, operacao TEXT NOT NULL, payload TEXT, criado_em TEXT NOT NULL

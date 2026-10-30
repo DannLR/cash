@@ -15,6 +15,7 @@ import {
   StyleSheet,
   Pressable,
   Platform,
+  AppState,
 } from 'react-native';
 
 import HomeScreen from './screens/HomeScreen';
@@ -36,6 +37,7 @@ import GoalDetailScreen from './screens/GoalDetailScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import SubscriptionsScreen from './screens/SubscriptionsScreen';
 import AuthScreen from './screens/AuthScreen';
+import ReviewPurchaseScreen from './screens/ReviewPurchaseScreen';
 
 import { getDb, setUsuarioAtual } from './database/db';
 import { getOnboardingVisto, marcarOnboardingVisto } from './database/queries';
@@ -44,6 +46,7 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import { reagendarLembretes } from './utils/notifications';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { iniciarSincronizacao } from './services/sync';
+import { obterNotificacaoSelecionada } from './services/androidPurchaseCapture';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -301,6 +304,32 @@ function AppPrincipal() {
     };
   }, [authCarregando, session?.user?.id, recuperacaoSenha]);
 
+  React.useEffect(() => {
+    if (!pronto || Platform.OS !== 'android') return undefined;
+    let ativo = true;
+    let verificando = false;
+    const abrirRevisaoSelecionada = async () => {
+      if (!ativo || verificando || !navigationRef.isReady()) return;
+      verificando = true;
+      try {
+        const purchaseId = obterNotificacaoSelecionada();
+        if (purchaseId) navigationRef.navigate('RevisarCompra', { purchaseId });
+      } finally {
+        verificando = false;
+      }
+    };
+    abrirRevisaoSelecionada();
+    const timer = setInterval(abrirRevisaoSelecionada, 700);
+    const inscricao = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') abrirRevisaoSelecionada();
+    });
+    return () => {
+      ativo = false;
+      clearInterval(timer);
+      inscricao.remove();
+    };
+  }, [pronto, session?.user?.id]);
+
   async function finalizarOnboarding() {
     await marcarOnboardingVisto();
     setOnboardingVisto(true);
@@ -364,6 +393,7 @@ function AppPrincipal() {
         />
         <Stack.Screen name="DetalhesMeta" component={GoalDetailScreen} />
         <Stack.Screen name="Configuracoes" component={SettingsScreen} />
+        <Stack.Screen name="RevisarCompra" component={ReviewPurchaseScreen} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Assinaturas" component={SubscriptionsScreen} />
       </Stack.Navigator>
 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, Switch, ActivityIndicator } from 'react-native';
+import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, Platform, AppState } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getNotificacoesAtivas, definirNotificacoesAtivas } from '../database/queries';
@@ -7,17 +7,38 @@ import { reagendarLembretes } from '../utils/notifications';
 import { useTema } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { sincronizarAgora } from '../services/sync';
+import { abrirConfiguracaoNotificacoesCompra, temAcessoNotificacoesCompra, obterComprasPendentes } from '../services/androidPurchaseCapture';
 
 export default function SettingsScreen({ navigation }) {
   const { modoEscuro, alternarTema, cores } = useTema();
   const { usuario, sair } = useAuth();
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
   const [saindo, setSaindo] = useState(false);
+  const [acessoCompras, setAcessoCompras] = useState(false);
+  const [comprasPendentes, setComprasPendentes] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let ativo = true;
       getNotificacoesAtivas().then((v) => ativo && setNotificacoesAtivas(v));
+      if (Platform.OS === 'android') {
+        const atualizarAcesso = () => temAcessoNotificacoesCompra()
+          .then((v) => ativo && setAcessoCompras(v))
+          .catch(() => ativo && setAcessoCompras(false));
+        const atualizarPendentes = () => ativo && setComprasPendentes(obterComprasPendentes().length);
+        atualizarAcesso();
+        atualizarPendentes();
+        const inscricao = AppState.addEventListener('change', (estado) => {
+          if (estado === 'active') {
+            atualizarAcesso();
+            atualizarPendentes();
+          }
+        });
+        return () => {
+          ativo = false;
+          inscricao.remove();
+        };
+      }
       return () => { ativo = false; };
     }, [])
   );
@@ -39,6 +60,11 @@ export default function SettingsScreen({ navigation }) {
     } finally {
       setSaindo(false);
     }
+  }
+
+  function revisarProximaCompra() {
+    const compra = obterComprasPendentes()[0];
+    if (compra?.id) navigation.navigate('RevisarCompra', { purchaseId: compra.id });
   }
 
   return (
@@ -90,6 +116,40 @@ export default function SettingsScreen({ navigation }) {
           </Text>
         </View>
 
+        {Platform.OS === 'android' && (
+          <>
+            <Text style={[styles.secaoTitulo, { color: cores.textoSecundario, marginTop: 20 }]}>Compras automáticas</Text>
+            <View style={[styles.card, { backgroundColor: cores.card }]}>
+              <View style={styles.linha}>
+                <View style={styles.linhaEsquerda}>
+                  <Ionicons name="card-outline" size={18} color={cores.primario} />
+                  <Text style={[styles.linhaTexto, { color: cores.texto }]}>
+                    {acessoCompras ? 'Acesso às notificações ativo' : 'Detectar compras por notificação'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={abrirConfiguracaoNotificacoesCompra}
+                  accessibilityLabel="Configurar acesso às notificações de compra"
+                  style={[styles.botaoPermissao, { borderColor: cores.primario }]}
+                >
+                  <Text style={{ color: cores.primario, fontSize: 12, fontWeight: '600' }}>Configurar</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.linhaAjuda, { color: cores.textoSecundario }]}>
+                O Android exige acesso geral às notificações para detectar compras de bancos e do Google Pay. O Cash analisa o conteúdo no aparelho e guarda temporariamente apenas avisos que parecem compras. Ao tocar no aviso do Cash, você pode editar valor, categoria, data e forma de pagamento; só então o lançamento é salvo e sincronizado.
+              </Text>
+              {comprasPendentes > 0 && (
+                <TouchableOpacity onPress={revisarProximaCompra} style={[styles.botaoRevisar, { backgroundColor: cores.fundo }]}>
+                  <Ionicons name="create-outline" size={16} color={cores.primario} />
+                  <Text style={{ color: cores.primario, fontSize: 12, fontWeight: '600' }}>
+                    Revisar compra pendente ({comprasPendentes})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        )}
+
         <Text style={[styles.secaoTitulo, { color: cores.textoSecundario, marginTop: 20 }]}>Sobre</Text>
         <View style={[styles.card, { backgroundColor: cores.card }]}>
           <Text style={[styles.linhaTexto, { color: cores.texto }]}>cash</Text>
@@ -111,4 +171,6 @@ const styles = StyleSheet.create({
   linhaEsquerda: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   linhaTexto: { fontSize: 14, fontWeight: '500' },
   linhaAjuda: { fontSize: 12, marginTop: 8, lineHeight: 17 },
+  botaoPermissao: { borderWidth: 1, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 11 },
+  botaoRevisar: { minHeight: 40, borderRadius: 10, marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
 });
