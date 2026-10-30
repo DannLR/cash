@@ -20,6 +20,7 @@ import { calcularResumoMensal, getMetas, getProximosLancamentos, resetarOnboardi
 import { navigationRef } from '../App';
 import { useMes } from '../context/MonthContext';
 import { useTema } from '../context/ThemeContext';
+import { parseValorMoeda } from '../utils/moeda';
 
 function formatarReal(valor) {
   return valor.toLocaleString('pt-BR', {
@@ -98,7 +99,7 @@ export default function HomeScreen() {
   }
 
   function verificarCompra() {
-    const valorNumerico = parseFloat(valorCompra.replace(/\./g, '').replace(',', '.'));
+    const valorNumerico = parseValorMoeda(valorCompra);
     if (!valorNumerico || valorNumerico <= 0) return;
 
     // O "saldo disponível pra gastar" agora desconta também o quanto já
@@ -495,7 +496,7 @@ function HomeWeb({
                   <Text numberOfLines={1} style={[webStyles.metricLabel, mobileLayout && webStyles.mobileMetricLabel, { color: cores.textoSecundario }]}>Gastos</Text>
                 </View>
                 <Text numberOfLines={1} adjustsFontSizeToFit style={[webStyles.metricValue, mobileLayout && webStyles.mobileMetricValue, { color: cores.texto }]}>{formatarReal(d.gasto)}</Text>
-                <Text numberOfLines={1} style={[webStyles.metricFoot, mobileLayout && webStyles.mobileMetricFoot]}>Despesas realizadas</Text>
+                <Text numberOfLines={1} style={[webStyles.metricFoot, mobileLayout && webStyles.mobileMetricFoot]}>Lançadas + previstas</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[webStyles.metricCard, mobileLayout && webStyles.mobileMetricCard, { backgroundColor: cores.card }]}

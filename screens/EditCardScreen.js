@@ -5,14 +5,15 @@ import { atualizarDadosCartao } from '../database/queries';
 import { useTema } from '../context/ThemeContext';
 import WebPageHeader from '../components/WebPageHeader';
 import PageIntro from '../components/PageIntro';
+import { parseValorMoeda } from '../utils/moeda';
 
 function formatarValor(texto) { const digitos = texto.replace(/\D/g, ''); return digitos ? (parseInt(digitos, 10) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''; }
 export default function EditCardScreen({ navigation, route }) {
   const { cores } = useTema();
   const web = Platform.OS === 'web';
   const { cartao } = route.params; const [limite, setLimite] = useState((cartao.limite || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })); const [salvando, setSalvando] = useState(false);
-  const podeSalvar = limite && parseFloat(limite.replace(/\./g, '').replace(',', '.')) >= 0 && !salvando;
-  async function salvar() { if (!podeSalvar) return; setSalvando(true); try { await atualizarDadosCartao(cartao.id, { limite: parseFloat(limite.replace(/\./g, '').replace(',', '.')), diaVencimento: cartao.dia_vencimento, diaFechamento: cartao.dia_fechamento }); navigation.goBack(); } finally { setSalvando(false); } }
+  const podeSalvar = limite && parseValorMoeda(limite) >= 0 && !salvando;
+  async function salvar() { if (!podeSalvar) return; setSalvando(true); try { await atualizarDadosCartao(cartao.id, { limite: parseValorMoeda(limite), diaVencimento: cartao.dia_vencimento, diaFechamento: cartao.dia_fechamento }); navigation.goBack(); } finally { setSalvando(false); } }
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: cores.fundo }]}>
       <KeyboardAvoidingView style={[styles.conteudo, web && styles.webConteudo]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

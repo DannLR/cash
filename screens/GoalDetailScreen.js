@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getMetas, atualizarMeta, atualizarValoresMeta, excluirMeta } from '../database/queries';
 import { useTema } from '../context/ThemeContext';
+import { parseValorMoeda } from '../utils/moeda';
 
 const real = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -26,9 +27,7 @@ function formatarValorInput(texto) {
   return numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function paraNumero(texto) {
-  return parseFloat((texto || '0').replace(/\./g, '').replace(',', '.')) || 0;
-}
+function paraNumero(texto) { return parseValorMoeda(texto); }
 
 export default function GoalDetailScreen({ route, navigation }) {
   const { cores } = useTema();

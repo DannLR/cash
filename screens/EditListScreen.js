@@ -29,6 +29,7 @@ import { useMes } from '../context/MonthContext';
 import { useTema } from '../context/ThemeContext';
 import WebPageHeader from '../components/WebPageHeader';
 import PageIntro from '../components/PageIntro';
+import { parseValorMoeda } from '../utils/moeda';
 
 function formatarReal(valor) {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -118,7 +119,7 @@ export default function EditListScreen({ navigation, route }) {
   }
 
   async function salvarEdicao() {
-    const valorNumerico = parseFloat(campoValor.replace(/\./g, '').replace(',', '.'));
+    const valorNumerico = parseValorMoeda(campoValor);
     if (modo === 'movimentacao') {
       await atualizarMovimentacao(editandoId, {
         valor: valorNumerico,

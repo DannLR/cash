@@ -5,6 +5,7 @@ import { salvarCartao } from '../database/queries';
 import { useTema } from '../context/ThemeContext';
 import WebPageHeader from '../components/WebPageHeader';
 import PageIntro from '../components/PageIntro';
+import { parseValorMoeda } from '../utils/moeda';
 
 const BANDEIRAS = ['Visa', 'Mastercard', 'Elo', 'Hipercard', 'Outro'];
 function formatarValor(texto) { const digitos = texto.replace(/\D/g, ''); return digitos ? (parseInt(digitos, 10) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''; }
@@ -15,7 +16,7 @@ export default function AddCardScreen({ navigation }) {
   const [apelido, setApelido] = useState(''); const [bandeira, setBandeira] = useState('Visa'); const [ultimosDigitos, setUltimosDigitos] = useState(''); const [limite, setLimite] = useState(''); const [diaVencimento, setDiaVencimento] = useState(''); const [diaFechamento, setDiaFechamento] = useState(''); const [salvando, setSalvando] = useState(false);
   const diaValido = (dia) => parseInt(dia, 10) >= 1 && parseInt(dia, 10) <= 31;
   const podeSalvar = apelido.trim() && limite && diaValido(diaVencimento) && diaValido(diaFechamento) && !salvando;
-  async function salvar() { if (!podeSalvar) return; setSalvando(true); try { await salvarCartao({ apelido: apelido.trim(), bandeira, ultimosDigitos: ultimosDigitos.replace(/\D/g, '').slice(-4), limite: parseFloat(limite.replace(/\./g, '').replace(',', '.')), diaVencimento: parseInt(diaVencimento, 10), diaFechamento: parseInt(diaFechamento, 10) }); navigation.goBack(); } finally { setSalvando(false); } }
+  async function salvar() { if (!podeSalvar) return; setSalvando(true); try { await salvarCartao({ apelido: apelido.trim(), bandeira, ultimosDigitos: ultimosDigitos.replace(/\D/g, '').slice(-4), limite: parseValorMoeda(limite), diaVencimento: parseInt(diaVencimento, 10), diaFechamento: parseInt(diaFechamento, 10) }); navigation.goBack(); } finally { setSalvando(false); } }
   const camposCartao = (
     <>
       <View style={web && styles.webCamposColuna}>

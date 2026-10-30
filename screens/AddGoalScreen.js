@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { salvarMeta } from '../database/queries';
 import { useTema } from '../context/ThemeContext';
+import { parseValorMoeda } from '../utils/moeda';
 
 const ATALHOS = [
   { icone: 'home-outline', nome: 'Entrada de apartamento' },
@@ -29,9 +30,7 @@ function formatarValorInput(texto) {
   return numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function paraNumero(texto) {
-  return parseFloat((texto || '0').replace(/\./g, '').replace(',', '.')) || 0;
-}
+function paraNumero(texto) { return parseValorMoeda(texto); }
 
 export default function AddGoalScreen({ navigation }) {
   const { cores } = useTema();

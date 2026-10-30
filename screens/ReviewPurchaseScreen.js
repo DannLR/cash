@@ -5,6 +5,7 @@ import CampoData from '../components/CampoData';
 import { useTema } from '../context/ThemeContext';
 import { confirmarNotificacoesRevisadas, obterComprasPendentes } from '../services/androidPurchaseCapture';
 import { getCartoes, importarCompraNotificada } from '../database/queries';
+import { parseValorMoeda } from '../utils/moeda';
 
 const CATEGORIAS = ['Compras', 'Mercado', 'Restaurantes', 'Combustível', 'Lazer', 'Outros'];
 
@@ -45,7 +46,7 @@ export default function ReviewPurchaseScreen({ navigation, route }) {
   }, [route.params?.purchaseId]);
 
   async function incluirCompra() {
-    const valorNumero = Number(valor.replace(/\./g, '').replace(',', '.'));
+    const valorNumero = parseValorMoeda(valor);
     if (!compra || !Number.isFinite(valorNumero) || valorNumero <= 0) {
       Alert.alert('Confira o valor', 'Digite um valor válido para a compra.');
       return;
