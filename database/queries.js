@@ -297,6 +297,7 @@ export async function getProximosLancamentos(mesReferencia) {
      WHERE usuario_id = ? AND status = 'ativa' ORDER BY dia_vencimento ASC`,
     [USUARIO_ID]
   );
+  const pagasIds = await idsContasPagasNoMes(db, referencia);
   return linhas
     .filter((l) => contaVisivelNoMes(l, referencia))
     .map((l) => ({
@@ -305,6 +306,7 @@ export async function getProximosLancamentos(mesReferencia) {
       nome: l.nome,
       tipo: l.tipo,
       valor: -l.valor,
+      estaPaga: pagasIds.has(l.id),
     }));
 }
 
