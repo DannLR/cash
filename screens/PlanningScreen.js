@@ -128,53 +128,41 @@ export default function PlanningScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: cores.fundo }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <PageIntro kicker="CONTAS DO MÊS" titulo="Planejamento" subtitulo="Acompanhe o que já foi pago, está pendente ou venceu." cores={cores} />
-        <ResumoStatus grupos={grupos} cores={cores} web={false} />
-        {grupos.map((grupo) => (
-          <GrupoStatus key={grupo.chave} grupo={grupo} cores={cores} web={false}
-            editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
-        ))}
+        <ListaContas grupos={grupos} cores={cores} web={false}
+          editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function ResumoStatus({ grupos, cores, web }) {
-  return (
-    <View style={web ? webStyles.resumoLinha : styles.resumoLinha}>
-      {grupos.map((grupo) => (
-        <View key={grupo.chave} style={[web ? webStyles.resumoCard : styles.resumoCard, { backgroundColor: cores.card, borderColor: cores.borda }]}>
-          <View style={[web ? webStyles.resumoIcone : styles.resumoIcone, { backgroundColor: `${grupo.cor}1A` }]}>
-            <Ionicons name={grupo.icone} size={web ? 17 : 15} color={grupo.cor} />
-          </View>
-          <Text style={[web ? webStyles.resumoLabel : styles.resumoLabel, { color: cores.textoSecundario }]}>{grupo.titulo}</Text>
-          <Text style={[web ? webStyles.resumoNumero : styles.resumoNumero, { color: cores.texto }]}>{grupo.itens.length}</Text>
-          <Text numberOfLines={1} style={[web ? webStyles.resumoTotal : styles.resumoTotal, { color: cores.textoSecundario }]}>
-            {formatarReal(grupo.itens.reduce((soma, item) => soma + Math.abs(item.valor), 0))}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function GrupoStatus({ grupo, cores, web, editarConta, apagarConta, alternarPagamento }) {
+function ListaContas({ grupos, cores, web, editarConta, apagarConta, alternarPagamento }) {
   return (
     <View style={[web ? webStyles.cardLista : styles.cardLista, { backgroundColor: cores.card, borderColor: cores.borda }]}>
-      <View style={web ? webStyles.listaTopo : styles.listaTopo}>
-        <View style={web ? webStyles.listaTituloGrupo : styles.listaTituloGrupo}>
-          <Ionicons name={grupo.icone} size={web ? 18 : 17} color={grupo.cor} />
-          <Text style={[web ? webStyles.listaTitulo : styles.listaTitulo, { color: cores.texto }]}>{grupo.titulo}</Text>
-        </View>
-        <Text style={[web ? webStyles.listaContagem : styles.listaContagem, { color: cores.textoSecundario }]}>{grupo.itens.length}</Text>
-      </View>
-      {grupo.itens.length === 0 ? (
-        <Text style={[web ? webStyles.vazio : styles.vazio, { color: cores.textoSecundario }]}>
-          {grupo.chave === 'vencidas' ? 'Nenhuma conta vencida.' : grupo.chave === 'pendentes' ? 'Nenhuma conta pendente.' : 'Nenhuma conta paga neste mês.'}
-        </Text>
-      ) : grupo.itens.map((item) => (
-        <ContaStatusRow key={item.id} item={item} grupo={grupo} cores={cores} web={web}
-          editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
-      ))}
+      {grupos.map((grupo, indice) => {
+        const total = grupo.itens.reduce((soma, item) => soma + Math.abs(item.valor), 0);
+        return (
+          <View key={grupo.chave} style={indice > 0 ? [web ? webStyles.secaoGrupo : styles.secaoGrupo, { borderTopColor: cores.borda }] : null}>
+            <View style={web ? webStyles.listaTopo : styles.listaTopo}>
+              <View style={web ? webStyles.listaTituloGrupo : styles.listaTituloGrupo}>
+                <View style={[web ? webStyles.statusIcone : styles.statusIcone, { backgroundColor: `${grupo.cor}1A` }]}>
+                  <Ionicons name={grupo.icone} size={web ? 16 : 15} color={grupo.cor} />
+                </View>
+                <Text style={[web ? webStyles.listaTitulo : styles.listaTitulo, { color: cores.texto }]}>{grupo.titulo}</Text>
+                <Text style={[web ? webStyles.listaContagem : styles.listaContagem, { color: cores.textoSecundario }]}>{grupo.itens.length}</Text>
+              </View>
+              <Text style={[web ? webStyles.totalGrupo : styles.totalGrupo, { color: cores.textoSecundario }]}>{formatarReal(total)}</Text>
+            </View>
+            {grupo.itens.length === 0 ? (
+              <Text style={[web ? webStyles.vazio : styles.vazio, { color: cores.textoSecundario }]}>
+                {grupo.chave === 'vencidas' ? 'Nenhuma conta vencida.' : grupo.chave === 'pendentes' ? 'Nenhuma conta pendente.' : 'Nenhuma conta paga neste mês.'}
+              </Text>
+            ) : grupo.itens.map((item) => (
+              <ContaStatusRow key={item.id} item={item} grupo={grupo} cores={cores} web={web}
+                editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
+            ))}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -219,11 +207,8 @@ function PlanningWeb({ cores, grupos, editarConta, apagarConta, alternarPagament
           subtitulo="Acompanhe o que já foi pago, está pendente ou venceu."
           cores={cores}
         />
-        <ResumoStatus grupos={grupos} cores={cores} web />
-        <View style={webStyles.gruposLinha}>
-          {grupos.map((grupo) => <GrupoStatus key={grupo.chave} grupo={grupo} cores={cores} web
-            editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />)}
-        </View>
+        <ListaContas grupos={grupos} cores={cores} web
+          editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -232,19 +217,15 @@ function PlanningWeb({ cores, grupos, editarConta, apagarConta, alternarPagament
 const webStyles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 24, paddingBottom: 48, maxWidth: 1240, width: '100%', alignSelf: 'center' },
-  resumoLinha: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  resumoCard: { flex: 1, minWidth: 0, borderRadius: 16, borderWidth: 1, padding: 16 },
-  resumoIcone: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  resumoLabel: { fontSize: 12 },
-  resumoNumero: { fontSize: 24, fontWeight: '700', fontFamily: 'Space Grotesk, sans-serif', marginTop: 3 },
-  resumoTotal: { fontSize: 11, marginTop: 2 },
-  gruposLinha: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  cardLista: { flex: 1, minWidth: 0, borderRadius: 16, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 14 },
-  listaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  cardLista: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 8 },
+  secaoGrupo: { borderTopWidth: 1, marginTop: 4, paddingTop: 6 },
+  listaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, paddingVertical: 5 },
   listaTituloGrupo: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  statusIcone: { width: 27, height: 27, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   listaTitulo: { fontSize: 15, fontWeight: '700', fontFamily: 'Space Grotesk, sans-serif' },
-  listaContagem: { fontSize: 11, minWidth: 22, textAlign: 'center', overflow: 'hidden' },
-  vazio: { fontSize: 13, textAlign: 'center', paddingVertical: 20 },
+  listaContagem: { fontSize: 11, minWidth: 22 },
+  totalGrupo: { fontSize: 12, fontWeight: '600' },
+  vazio: { fontSize: 12, paddingVertical: 10, paddingLeft: 34 },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,18 +249,15 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centro: { alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  resumoLinha: { flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 12 },
-  resumoCard: { flex: 1, minWidth: 0, borderRadius: 14, borderWidth: 1, padding: 10 },
-  resumoIcone: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  resumoLabel: { fontSize: 11 },
-  resumoNumero: { fontSize: 20, fontWeight: '700' },
-  resumoTotal: { fontSize: 10, marginTop: 2 },
-  cardLista: { borderRadius: 14, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 11, marginBottom: 12 },
-  listaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  cardLista: { borderRadius: 14, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 5, marginTop: 8 },
+  secaoGrupo: { borderTopWidth: 1, marginTop: 4, paddingTop: 5 },
+  listaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3, paddingVertical: 4 },
   listaTituloGrupo: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  statusIcone: { width: 25, height: 25, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   listaTitulo: { fontSize: 15, fontWeight: '700' },
-  listaContagem: { fontSize: 12 },
-  vazio: { fontSize: 13, textAlign: 'center', paddingVertical: 20 },
+  listaContagem: { fontSize: 11 },
+  totalGrupo: { fontSize: 11, fontWeight: '600' },
+  vazio: { fontSize: 12, paddingVertical: 9, paddingLeft: 32 },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
