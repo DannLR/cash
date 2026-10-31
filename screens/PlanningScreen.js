@@ -61,6 +61,7 @@ export default function PlanningScreen() {
   const [lancamentos, setLancamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [atualizacao, setAtualizacao] = useState(0);
+  const [statusAtivo, setStatusAtivo] = useState('pendentes');
 
   useFocusEffect(
     useCallback(() => {
@@ -106,6 +107,7 @@ export default function PlanningScreen() {
   }
 
   const grupos = agruparPorStatus(lancamentos, ano, mes);
+  const grupoAtivo = grupos.find((grupo) => grupo.chave === statusAtivo) || grupos[0];
 
   async function alternarPagamento(item) {
     await alternarContaPaga(item.id, referencia, item.estaPaga);
@@ -117,6 +119,8 @@ export default function PlanningScreen() {
       <PlanningWeb
         cores={cores}
         grupos={grupos}
+        statusAtivo={statusAtivo}
+        setStatusAtivo={setStatusAtivo}
         editarConta={editarConta}
         apagarConta={apagarConta}
         alternarPagamento={alternarPagamento}
@@ -128,41 +132,57 @@ export default function PlanningScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: cores.fundo }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <PageIntro kicker="CONTAS DO MÊS" titulo="Planejamento" subtitulo="Acompanhe o que já foi pago, está pendente ou venceu." cores={cores} />
-        <ListaContas grupos={grupos} cores={cores} web={false}
+        <AbasStatus grupos={grupos} statusAtivo={statusAtivo} setStatusAtivo={setStatusAtivo} cores={cores} web={false} />
+        <ListaContas grupo={grupoAtivo} cores={cores} web={false}
           editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function ListaContas({ grupos, cores, web, editarConta, apagarConta, alternarPagamento }) {
+function AbasStatus({ grupos, statusAtivo, setStatusAtivo, cores, web }) {
   return (
-    <View style={[web ? webStyles.cardLista : styles.cardLista, { backgroundColor: cores.card, borderColor: cores.borda }]}>
-      {grupos.map((grupo, indice) => {
+    <View style={web ? webStyles.abasStatus : styles.abasStatus}>
+      {grupos.map((grupo) => {
         const total = grupo.itens.reduce((soma, item) => soma + Math.abs(item.valor), 0);
+        const ativo = grupo.chave === statusAtivo;
         return (
-          <View key={grupo.chave} style={indice > 0 ? [web ? webStyles.secaoGrupo : styles.secaoGrupo, { borderTopColor: cores.borda }] : null}>
-            <View style={web ? webStyles.listaTopo : styles.listaTopo}>
-              <View style={web ? webStyles.listaTituloGrupo : styles.listaTituloGrupo}>
-                <View style={[web ? webStyles.statusIcone : styles.statusIcone, { backgroundColor: `${grupo.cor}1A` }]}>
-                  <Ionicons name={grupo.icone} size={web ? 16 : 15} color={grupo.cor} />
-                </View>
-                <Text style={[web ? webStyles.listaTitulo : styles.listaTitulo, { color: cores.texto }]}>{grupo.titulo}</Text>
-                <Text style={[web ? webStyles.listaContagem : styles.listaContagem, { color: cores.textoSecundario }]}>{grupo.itens.length}</Text>
-              </View>
-              <Text style={[web ? webStyles.totalGrupo : styles.totalGrupo, { color: cores.textoSecundario }]}>{formatarReal(total)}</Text>
-            </View>
-            {grupo.itens.length === 0 ? (
-              <Text style={[web ? webStyles.vazio : styles.vazio, { color: cores.textoSecundario }]}>
-                {grupo.chave === 'vencidas' ? 'Nenhuma conta vencida.' : grupo.chave === 'pendentes' ? 'Nenhuma conta pendente.' : 'Nenhuma conta paga neste mês.'}
-              </Text>
-            ) : grupo.itens.map((item) => (
-              <ContaStatusRow key={item.id} item={item} grupo={grupo} cores={cores} web={web}
-                editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
-            ))}
-          </View>
+          <TouchableOpacity key={grupo.chave} onPress={() => setStatusAtivo(grupo.chave)} activeOpacity={0.8}
+            accessibilityRole="button" accessibilityState={{ selected: ativo }}
+            accessibilityLabel={`${grupo.titulo}, ${grupo.itens.length} contas, ${formatarReal(total)}`}
+            style={[web ? webStyles.abaStatus : styles.abaStatus, { backgroundColor: cores.card, borderColor: ativo ? cores.primario : cores.borda }]}>
+            <Text numberOfLines={1} style={[web ? webStyles.abaStatusTitulo : styles.abaStatusTitulo, { color: cores.textoSecundario }]}>{grupo.titulo}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[web ? webStyles.abaStatusTotal : styles.abaStatusTotal, { color: cores.texto }]}>{formatarReal(total)}</Text>
+            <Text style={[web ? webStyles.abaStatusContagem : styles.abaStatusContagem, { color: grupo.cor }]}>{grupo.itens.length} {grupo.itens.length === 1 ? 'conta' : 'contas'}</Text>
+          </TouchableOpacity>
         );
       })}
+    </View>
+  );
+}
+
+function ListaContas({ grupo, cores, web, editarConta, apagarConta, alternarPagamento }) {
+  const total = grupo.itens.reduce((soma, item) => soma + Math.abs(item.valor), 0);
+  return (
+    <View style={[web ? webStyles.cardLista : styles.cardLista, { backgroundColor: cores.card, borderColor: cores.borda }]}>
+      <View style={web ? webStyles.listaTopo : styles.listaTopo}>
+        <View style={web ? webStyles.listaTituloGrupo : styles.listaTituloGrupo}>
+          <View style={[web ? webStyles.statusIcone : styles.statusIcone, { backgroundColor: `${grupo.cor}1A` }]}>
+            <Ionicons name={grupo.icone} size={web ? 16 : 15} color={grupo.cor} />
+          </View>
+          <Text style={[web ? webStyles.listaTitulo : styles.listaTitulo, { color: cores.texto }]}>{grupo.titulo}</Text>
+          <Text style={[web ? webStyles.listaContagem : styles.listaContagem, { color: cores.textoSecundario }]}>{grupo.itens.length}</Text>
+        </View>
+        <Text style={[web ? webStyles.totalGrupo : styles.totalGrupo, { color: cores.texto }]}>{formatarReal(total)}</Text>
+      </View>
+      {grupo.itens.length === 0 ? (
+        <Text style={[web ? webStyles.vazio : styles.vazio, { color: cores.textoSecundario }]}>
+          {grupo.chave === 'vencidas' ? 'Nenhuma conta vencida.' : grupo.chave === 'pendentes' ? 'Nenhuma conta pendente.' : 'Nenhuma conta paga neste mês.'}
+        </Text>
+      ) : grupo.itens.map((item) => (
+        <ContaStatusRow key={item.id} item={item} grupo={grupo} cores={cores} web={web}
+          editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
+      ))}
     </View>
   );
 }
@@ -196,7 +216,7 @@ function ContaStatusRow({ item, grupo, cores, web, editarConta, apagarConta, alt
   );
 }
 
-function PlanningWeb({ cores, grupos, editarConta, apagarConta, alternarPagamento }) {
+function PlanningWeb({ cores, grupos, statusAtivo, setStatusAtivo, editarConta, apagarConta, alternarPagamento }) {
   return (
     <SafeAreaView style={[webStyles.container, { backgroundColor: cores.fundo }]}>
       <ScrollView contentContainerStyle={webStyles.scrollContent}>
@@ -207,7 +227,8 @@ function PlanningWeb({ cores, grupos, editarConta, apagarConta, alternarPagament
           subtitulo="Acompanhe o que já foi pago, está pendente ou venceu."
           cores={cores}
         />
-        <ListaContas grupos={grupos} cores={cores} web
+        <AbasStatus grupos={grupos} statusAtivo={statusAtivo} setStatusAtivo={setStatusAtivo} cores={cores} web />
+        <ListaContas grupo={grupos.find((item) => item.chave === statusAtivo) || grupos[0]} cores={cores} web
           editarConta={editarConta} apagarConta={apagarConta} alternarPagamento={alternarPagamento} />
       </ScrollView>
     </SafeAreaView>
@@ -217,8 +238,12 @@ function PlanningWeb({ cores, grupos, editarConta, apagarConta, alternarPagament
 const webStyles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 24, paddingBottom: 48, maxWidth: 1240, width: '100%', alignSelf: 'center' },
+  abasStatus: { flexDirection: 'row', gap: 16, marginBottom: 16 },
+  abaStatus: { flex: 1, minWidth: 0, minHeight: 96, borderRadius: 20, borderWidth: 1.5, paddingHorizontal: 20, paddingVertical: 16, justifyContent: 'center' },
+  abaStatusTitulo: { fontSize: 12, marginBottom: 6 },
+  abaStatusTotal: { fontSize: 23, fontWeight: '700', fontFamily: 'Space Grotesk, sans-serif' },
+  abaStatusContagem: { fontSize: 10, marginTop: 3 },
   cardLista: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 8 },
-  secaoGrupo: { borderTopWidth: 1, marginTop: 4, paddingTop: 6 },
   listaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, paddingVertical: 5 },
   listaTituloGrupo: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   statusIcone: { width: 27, height: 27, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
@@ -249,8 +274,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centro: { alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: 16, paddingBottom: 40 },
+  abasStatus: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  abaStatus: { flex: 1, minWidth: 0, minHeight: 82, borderRadius: 14, borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 11, justifyContent: 'center' },
+  abaStatusTitulo: { fontSize: 10, marginBottom: 5 },
+  abaStatusTotal: { fontSize: 16, fontWeight: '700' },
+  abaStatusContagem: { fontSize: 9, marginTop: 3 },
   cardLista: { borderRadius: 14, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 5, marginTop: 8 },
-  secaoGrupo: { borderTopWidth: 1, marginTop: 4, paddingTop: 5 },
   listaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3, paddingVertical: 4 },
   listaTituloGrupo: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   statusIcone: { width: 25, height: 25, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
