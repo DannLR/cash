@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import CashLogo from './components/CashLogo';
 import { ThemeProvider, useTema } from './context/ThemeContext';
 import { MonthProvider } from './context/MonthContext';
 import { useWindowDimensions } from 'react-native';
@@ -38,6 +37,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import SubscriptionsScreen from './screens/SubscriptionsScreen';
 import AuthScreen from './screens/AuthScreen';
 import ReviewPurchaseScreen from './screens/ReviewPurchaseScreen';
+import ReceiptScreen from './screens/ReceiptScreen';
 
 import { getDb, setUsuarioAtual } from './database/db';
 import { getOnboardingVisto, marcarOnboardingVisto } from './database/queries';
@@ -104,20 +104,17 @@ const ICONES_ABAS = {
   Insights: 'stats-chart-outline',
 };
 
-function SidebarTabBar({ state, descriptors, navigation }) {
-  const { modoEscuro, alternarTema } = useTema();
+function SiteTabBar({ state, descriptors, navigation }) {
+  const { width } = useWindowDimensions();
   const [hoveredRoute, setHoveredRoute] = useState(null);
 
   return (
-    <View style={styles.sidebarWeb}>
-      <CashLogo size={38} style={styles.sidebarLogoBox} />
-      <View style={styles.sidebarLista}>
+    <View style={styles.siteTabBarWeb}>
+      <View style={styles.siteTabBarPill}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-
-          // A aba "Adicionar" já tem seu próprio botão especial (abre o menu).
           if (options.tabBarButton) {
-            return <View key={route.key}>{options.tabBarButton({})}</View>;
+            return <View key={route.key} style={styles.siteAddSlot}>{options.tabBarButton({})}</View>;
           }
 
           const focado = state.index === index;
@@ -138,54 +135,38 @@ function SidebarTabBar({ state, descriptors, navigation }) {
               activeOpacity={0.7}
               accessibilityLabel={route.name}
               title={route.name}
-              style={[styles.sidebarItemWeb, focado && styles.sidebarItemWebAtivo, hoveredRoute === route.key && styles.sidebarItemWebHover]}
+              style={[styles.siteTabItem, focado && styles.siteTabItemAtivo, hoveredRoute === route.key && styles.siteTabItemHover]}
             >
               {icone && (
                 <>
                   <Ionicons
                     name={icone}
-                    size={18}
-                    color={focado || hoveredRoute === route.key ? '#553584' : '#B9B3C2'}
-                    style={hoveredRoute === route.key && styles.sidebarIconeHover}
+                    size={17}
+                    color={focado || hoveredRoute === route.key ? '#553584' : '#D1CBD8'}
+                    style={hoveredRoute === route.key && styles.siteTabIconHover}
                   />
-                  {hoveredRoute === route.key && (
-                    <View pointerEvents="none" style={styles.sidebarTooltip}>
-                      <Text style={styles.sidebarTooltipTexto}>{route.name}</Text>
-                    </View>
-                  )}
+                  <Text numberOfLines={1} style={[styles.siteTabLabel, width < 520 && styles.siteTabLabelCompact, (focado || hoveredRoute === route.key) && styles.siteTabLabelAtivo]}>{width < 520 ? ({ Planejamento: 'Plan.', Insights: 'Insights' }[route.name] || route.name) : route.name}</Text>
                 </>
               )}
             </TouchableOpacity>
           );
         })}
-      </View>
 
-      <View style={styles.sidebarBottom}>
-        {[
-          { key: 'Metas', label: 'Metas', icon: 'flag-outline', onPress: () => navigation.navigate('Metas') },
-          { key: 'Configuracoes', label: 'Configurações', icon: 'settings-outline', onPress: () => navigation.navigate('Configuracoes') },
-          { key: 'Tema', label: modoEscuro ? 'Tema claro' : 'Tema escuro', icon: modoEscuro ? 'sunny-outline' : 'moon-outline', onPress: alternarTema },
-        ].map((item) => (
-          <TouchableOpacity
-            key={item.key}
-            onPress={item.onPress}
-            onMouseEnter={() => setHoveredRoute(item.key)}
-            onMouseLeave={() => setHoveredRoute(null)}
-            onHoverIn={() => setHoveredRoute(item.key)}
-            onHoverOut={() => setHoveredRoute(null)}
-            style={[styles.sidebarItemWeb, hoveredRoute === item.key && styles.sidebarItemWebHover]}
-            accessibilityLabel={item.label}
-            title={item.label}
-            activeOpacity={0.7}
-          >
-            <Ionicons name={item.icon} size={18} color={hoveredRoute === item.key ? '#553584' : '#B9B3C2'} style={hoveredRoute === item.key && styles.sidebarIconeHover} />
-            {hoveredRoute === item.key && (
-              <View pointerEvents="none" style={styles.sidebarTooltip}>
-                <Text style={styles.sidebarTooltipTexto}>{item.label}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Configuracoes')}
+          onMouseEnter={() => setHoveredRoute('Configuracoes')}
+          onMouseLeave={() => setHoveredRoute(null)}
+          onHoverIn={() => setHoveredRoute('Configuracoes')}
+          onHoverOut={() => setHoveredRoute(null)}
+          style={[styles.siteTabItem, hoveredRoute === 'Configuracoes' && styles.siteTabItemHover]}
+          accessibilityRole="button"
+          accessibilityLabel="Configurações"
+          title="Configurações"
+          activeOpacity={0.7}
+        >
+          <Ionicons name="settings-outline" size={17} color={hoveredRoute === 'Configuracoes' ? '#553584' : '#D1CBD8'} />
+          <Text numberOfLines={1} style={[styles.siteTabLabel, width < 520 && styles.siteTabLabelCompact, hoveredRoute === 'Configuracoes' && styles.siteTabLabelAtivo]}>{width < 520 ? 'Config.' : 'Configurações'}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -203,19 +184,19 @@ function CardsTabNavigator() {
 function Tabs({ onAbrirMenu }) {
   const { width } = useWindowDimensions();
   const { cores } = useTema();
-  // Barra lateral só em telas largas (computador/tablet). Em telas estreitas
-  // — celular, seja app nativo ou navegador do celular — mantém embaixo.
-  const web = Platform.OS === 'web' && width >= 768;
+  const web = Platform.OS === 'web';
 
   return (
     <Tab.Navigator
-      tabBar={web ? (props) => <SidebarTabBar {...props} /> : undefined}
+      tabBar={web ? (props) => <SiteTabBar {...props} /> : undefined}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarPosition: web ? 'left' : 'bottom',
+        tabBarPosition: 'bottom',
         tabBarActiveTintColor: cores.primario,
         tabBarInactiveTintColor: cores.textoSecundario,
-        tabBarStyle: web ? undefined : {
+        // A área reservada pelo navegador da barra também precisa acompanhar
+        // o fundo do tema; transparente deixava aparecer o branco do documento.
+        tabBarStyle: web ? { position: 'absolute', height: width < 520 ? 76 : 82, backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 } : {
           backgroundColor: cores.card,
           borderTopColor: cores.borda,
           height: 64,
@@ -234,7 +215,7 @@ function Tabs({ onAbrirMenu }) {
         name="Adicionar"
         component={TelaVazia}
         options={{
-          tabBarButton: () => <BotaoAdicionar onPress={onAbrirMenu} web={web} sidebar />,
+          tabBarButton: () => <BotaoAdicionar onPress={onAbrirMenu} web={web} />,
         }}
         listeners={{
           tabPress: (e) => {
@@ -251,6 +232,7 @@ function Tabs({ onAbrirMenu }) {
 }
 
 function AppPrincipal() {
+  const { cores } = useTema();
   const { session, carregando: authCarregando, recuperacaoSenha } = useAuth();
   const [menuVisivel, setMenuVisivel] = useState(false);
   const [pronto, setPronto] = useState(false);
@@ -351,7 +333,10 @@ function AppPrincipal() {
 
   return (
     <View style={{ flex: 1 }}>
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors, background: cores.fundo } }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs">
           {() => <Tabs onAbrirMenu={() => setMenuVisivel(true)} />}
@@ -394,6 +379,7 @@ function AppPrincipal() {
         <Stack.Screen name="DetalhesMeta" component={GoalDetailScreen} />
         <Stack.Screen name="Configuracoes" component={SettingsScreen} />
         <Stack.Screen name="RevisarCompra" component={ReviewPurchaseScreen} options={{ presentation: 'modal' }} />
+        <Stack.Screen name="LerComprovante" component={ReceiptScreen} options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="Assinaturas" component={SubscriptionsScreen} />
       </Stack.Navigator>
 
@@ -415,16 +401,18 @@ function AppPrincipal() {
               <Ionicons name="create-outline" size={18} color="#8665B5" />
               <Text style={styles.menuItemTexto}>Lançar manualmente</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisivel(false);
-                // Aqui depois vamos navegar para a tela de "Ler comprovante".
-              }}
-            >
-              <Ionicons name="receipt-outline" size={18} color="#8665B5" />
-              <Text style={styles.menuItemTexto}>Ler comprovante</Text>
-            </TouchableOpacity>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setMenuVisivel(false);
+                  navigationRef.navigate('LerComprovante');
+                }}
+              >
+                <Ionicons name="receipt-outline" size={18} color="#8665B5" />
+                <Text style={styles.menuItemTexto}>Ler comprovante</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Pressable>
       </Modal>
@@ -451,71 +439,34 @@ export default function App() {
 const styles = StyleSheet.create({
   avisoSincronizacao: { position: 'absolute', bottom: Platform.OS === 'web' ? 14 : 72, left: 14, right: 14, zIndex: 500, backgroundColor: '#FEF3C7', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   avisoSincronizacaoTexto: { flex: 1, fontSize: 11, lineHeight: 16, color: '#744A14' },
-  sidebarWeb: {
-    width: 72,
-    height: '100%',
-    paddingTop: 18,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
-    alignItems: 'center',
-    backgroundColor: '#19171D',
-    zIndex: 100,
-    overflow: 'visible',
-  },
-  sidebarLogoBox: {
-    marginBottom: 25,
-  },
-  sidebarLista: { alignItems: 'center', gap: 10, width: '100%' },
-  sidebarItemWeb: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    zIndex: 1,
-  },
-  sidebarItemWebHover: {
+  siteTabBarWeb: { position: 'absolute', bottom: 0, left: 0, right: 0, height: Platform.OS === 'web' ? 82 : 64, width: '100%', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingBottom: 8, backgroundColor: 'transparent', zIndex: 100, overflow: 'visible' },
+  siteTabBarPill: { width: '100%', maxWidth: 720, height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, borderRadius: 23, backgroundColor: '#19171D', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', shadowColor: '#17131D', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.18, shadowRadius: 18, elevation: 8, overflow: 'visible' },
+  siteTabItem: { flex: 1, minWidth: 0, height: 52, paddingHorizontal: 5, borderRadius: 17, alignItems: 'center', justifyContent: 'center', gap: 4, position: 'relative', zIndex: 1 },
+  siteTabItemHover: {
     backgroundColor: '#E9DEFF',
-    borderRadius: 999,
+    borderRadius: 17,
     zIndex: 50,
     elevation: 10,
   },
-  sidebarItemWebAtivo: {
+  siteTabItemAtivo: {
     backgroundColor: '#D7C8F0',
-    borderRadius: 999,
   },
-  sidebarIconeHover: { transform: [{ scale: 1.18 }] },
-  sidebarTooltip: {
-    position: 'absolute',
-    left: 52,
-    top: 2,
-    minWidth: 92,
-    height: 34,
-    paddingHorizontal: 14,
-    justifyContent: 'center',
-    backgroundColor: '#6B4AA5',
-    borderRadius: 999,
-    zIndex: 200,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  sidebarTooltipTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  sidebarBottom: { marginTop: 'auto', alignItems: 'center', gap: 8 },
+  siteTabIconHover: { transform: [{ scale: 1.16 }] },
+  siteTabLabel: { maxWidth: '100%', color: '#D1CBD8', fontSize: 9, fontWeight: '600' },
+  siteTabLabelCompact: { fontSize: 8 },
+  siteTabLabelAtivo: { color: '#553584' },
+  siteAddSlot: { width: 54, alignItems: 'center', justifyContent: 'center' },
   botaoAdicionarWeb: {
-    width: 42,
-    height: 42,
+    width: 52,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
     backgroundColor: '#9272C7',
-    borderRadius: 14,
-    marginBottom: 2,
-    paddingHorizontal: 0,
+    borderRadius: 17,
+    paddingHorizontal: 4,
   },
-  botaoAdicionarWebTexto: { display: 'none' },
+  botaoAdicionarWebTexto: { color: '#fff', fontSize: 8, fontWeight: '700' },
   fabWrapper: {
     top: -18,
     justifyContent: 'center',

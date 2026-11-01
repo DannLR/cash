@@ -100,12 +100,16 @@ export default function AddTransactionScreen({ navigation, route }) {
   // totalmente editáveis — a interpretação por palavras-chave não é perfeita.
   const valorInicial = route.params?.valorInicial || '';
   const categoriaInicial = route.params?.categoriaInicial || null;
+  const comprovante = route.params?.comprovante === true;
+  const dataInicial = route.params?.dataInicial || hojeFormatado();
+  const descricaoInicial = route.params?.descricaoInicial || '';
   const passoInicial = valorInicial && categoriaInicial ? 3 : valorInicial ? 2 : 1;
   const [passo, setPasso] = useState(passoInicial);
   const [valor, setValor] = useState(valorInicial);
   const [categoria, setCategoria] = useState(categoriaInicial);
-  const [categoriaCustom, setCategoriaCustom] = useState('');
-  const [data, setData] = useState(hojeFormatado());
+  const [categoriaCustom, setCategoriaCustom] = useState(route.params?.categoriaCustomInicial || '');
+  const [data, setData] = useState(dataInicial);
+  const [descricao, setDescricao] = useState(descricaoInicial);
   const [forma, setForma] = useState(route.params?.formaInicial || null);
   const [cartoes, setCartoes] = useState([]);
   const [cartaoId, setCartaoId] = useState(route.params?.cartaoId || null);
@@ -168,7 +172,7 @@ export default function AddTransactionScreen({ navigation, route }) {
 
         await salvarContaRecorrente({
           tipo: 'parcela',
-          nome: categoriaFinal,
+          nome: descricao.trim() || categoriaFinal,
           valor: valorPorParcela,
           diaVencimento,
           categoriaNome: categoriaFinal,
@@ -179,7 +183,7 @@ export default function AddTransactionScreen({ navigation, route }) {
       } else if (podeVirarFixa && destino === 'fixa') {
         await salvarContaRecorrente({
           tipo: 'fixa',
-          nome: categoriaFinal,
+          nome: descricao.trim() || categoriaFinal,
           valor: valorTotal,
           diaVencimento: parseInt(diaStr, 10),
           categoriaNome: categoriaFinal,
@@ -195,6 +199,8 @@ export default function AddTransactionScreen({ navigation, route }) {
           data: dataIso,
           formaPagamento: forma,
           cartaoId: forma === 'debito' ? cartaoId : null,
+          descricao: descricao.trim() || null,
+          origem: comprovante ? 'comprovante' : 'avulsa',
         });
       }
 
@@ -312,6 +318,14 @@ export default function AddTransactionScreen({ navigation, route }) {
                 aoAlterar={(novaData) => setData(formatarData(novaData))}
                 cores={cores}
                 estilo={styles.seletorData}
+              />
+
+              <Text style={[styles.rotuloPequeno, { color: cores.textoSecundario, marginTop: 14 }]}>Estabelecimento ou observação</Text>
+              <TextInput
+                style={[styles.inputTexto, { borderColor: cores.borda, color: cores.texto, backgroundColor: cores.card }]}
+                placeholder="Ex.: Mercado Central"
+                value={descricao}
+                onChangeText={setDescricao}
               />
 
               <Text style={[styles.rotuloPequeno, { color: cores.textoSecundario, marginTop: 14 }]}>Forma de pagamento</Text>

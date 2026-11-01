@@ -36,7 +36,21 @@
           "backgroundColor": "#8665B5"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Cash usa suas fotos para ler dados de comprovantes que você escolher.",
+          "cameraPermission": "O Cash usa a câmera para ler seus comprovantes.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-ocr-kit",
+        {
+          "cameraPermission": "O Cash usa a câmera para ler seus comprovantes."
+        }
+      ]
     ],
     "extra": {
       "eas": {

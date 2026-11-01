@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -48,7 +48,7 @@ function diasRestantesNoMes(ano, mes) {
 
 export default function HomeScreen() {
   const { ano, mes, label } = useMes();
-  const { cores } = useTema();
+  const { cores, modoEscuro, alternarTema } = useTema();
   const { width } = useWindowDimensions();
   const [dados, setDados] = useState(null);
   const [metas, setMetas] = useState([]);
@@ -133,6 +133,8 @@ export default function HomeScreen() {
       <HomeWeb
         d={d}
         cores={cores}
+        modoEscuro={modoEscuro}
+        alternarTema={alternarTema}
         ano={ano}
         mes={mes}
         label={label}
@@ -365,6 +367,8 @@ export default function HomeScreen() {
 function HomeWeb({
   d,
   cores,
+  modoEscuro,
+  alternarTema,
   label,
   lancamentos,
   periodoTag,
@@ -384,7 +388,19 @@ function HomeWeb({
   mobileLayout = false,
 }) {
   const { width } = useWindowDimensions();
+  useEffect(() => {
+    if (Platform.OS !== 'web' || document.getElementById('cash-glass-surfaces')) return;
+    const style = document.createElement('style');
+    style.id = 'cash-glass-surfaces';
+    style.textContent = '[data-cash-glass="true"]{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}';
+    document.head.appendChild(style);
+  }, []);
   const compactLayout = mobileLayout || width < 1080;
+  const temaEscuro = cores.texto === '#FFFFFF';
+  const superficieTranslucida = temaEscuro ? 'rgba(48, 43, 55, 0.52)' : 'rgba(255, 255, 255, 0.38)';
+  const bordaTranslucida = temaEscuro ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.62)';
+  const fundoPainel = temaEscuro ? '#1A1720' : '#E4DDEC';
+  const estiloSuperficie = { backgroundColor: superficieTranslucida, borderColor: bordaTranslucida };
   const progressoMeta = primeiraMeta ? Math.min(primeiraMeta.valorGuardado / primeiraMeta.valorObjetivo, 1) : 0;
   const maiorValor = Math.max(d.entrou, d.gasto, d.previsto, 1);
   const itensProximos = [...lancamentos]
@@ -392,7 +408,7 @@ function HomeWeb({
     .slice(0, 4);
 
   return (
-    <SafeAreaView style={[webStyles.container, { backgroundColor: cores.fundo }]}>
+    <SafeAreaView style={[webStyles.container, webStyles.glassBackdrop, { backgroundColor: fundoPainel }]}>
       <ScrollView contentContainerStyle={[webStyles.scrollContent, mobileLayout && webStyles.mobileScrollContent]}>
         <View style={[webStyles.dashboardTop, mobileLayout && webStyles.mobileDashboardTop]}>
           <View style={webStyles.brandLine}>
@@ -404,7 +420,8 @@ function HomeWeb({
           </View>
           <View style={[webStyles.topActions, mobileLayout && webStyles.mobileTopActions]}>
             <TouchableOpacity
-              style={[webStyles.monthButton, mobileLayout && webStyles.mobileMonthButton, { backgroundColor: cores.card, borderColor: cores.borda }]}
+              dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined}
+              style={[webStyles.monthButton, webStyles.translucentSurface, mobileLayout && webStyles.mobileMonthButton, estiloSuperficie]}
               onPress={() => navigationRef.navigate('SelecionarMes')}
               activeOpacity={0.75}
             >
@@ -412,17 +429,17 @@ function HomeWeb({
               <Text style={[webStyles.monthButtonText, { color: cores.texto }]}>{label}</Text>
               <Ionicons name="chevron-down" size={14} color={cores.textoSecundario} />
             </TouchableOpacity>
-            {(mobileLayout || Platform.OS !== 'web') && (
-              <TouchableOpacity
-                style={[webStyles.monthButton, webStyles.mobileSettingsButton, { backgroundColor: cores.card, borderColor: cores.borda }]}
-                onPress={() => navigationRef.navigate('Configuracoes')}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Abrir configurações"
-              >
-                <Ionicons name="settings-outline" size={16} color={cores.textoSecundario} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined}
+              style={[webStyles.monthButton, webStyles.translucentSurface, webStyles.mobileSettingsButton, estiloSuperficie]}
+              onPress={alternarTema}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={modoEscuro ? 'Ativar tema claro' : 'Ativar tema escuro'}
+              title={modoEscuro ? 'Ativar tema claro' : 'Ativar tema escuro'}
+            >
+              <Ionicons name={modoEscuro ? 'sunny-outline' : 'moon-outline'} size={16} color={cores.textoSecundario} />
+            </TouchableOpacity>
             <TouchableOpacity
               style={[webStyles.addButton, mobileLayout && webStyles.mobileAddButton]}
               onPress={() => navigationRef.navigate('AdicionarMovimentacao')}
@@ -471,7 +488,8 @@ function HomeWeb({
 
             <View style={[webStyles.statsRow, mobileLayout && webStyles.mobileStatsRow]}>
               <TouchableOpacity
-                style={[webStyles.metricCard, mobileLayout && webStyles.mobileMetricCard, { backgroundColor: cores.card }]}
+                dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined}
+                style={[webStyles.metricCard, webStyles.translucentSurface, mobileLayout && webStyles.mobileMetricCard, estiloSuperficie]}
                 onPress={() => navigationRef.navigate('EditarLancamentos', { modo: 'movimentacao', tipo: 'entrada' })}
                 accessibilityRole="button"
                 accessibilityLabel="Ver, adicionar ou editar entradas"
@@ -485,7 +503,8 @@ function HomeWeb({
                 <Text numberOfLines={1} style={[webStyles.metricFoot, mobileLayout && webStyles.mobileMetricFoot]}>Recebido neste mês</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[webStyles.metricCard, mobileLayout && webStyles.mobileMetricCard, { backgroundColor: cores.card }]}
+                dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined}
+                style={[webStyles.metricCard, webStyles.translucentSurface, mobileLayout && webStyles.mobileMetricCard, estiloSuperficie]}
                 onPress={() => navigationRef.navigate('Contas')}
                 accessibilityRole="button"
                 accessibilityLabel="Abrir contas e gastos"
@@ -499,7 +518,8 @@ function HomeWeb({
                 <Text numberOfLines={1} style={[webStyles.metricFoot, mobileLayout && webStyles.mobileMetricFoot]}>Lançadas + previstas</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[webStyles.metricCard, mobileLayout && webStyles.mobileMetricCard, { backgroundColor: cores.card }]}
+                dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined}
+                style={[webStyles.metricCard, webStyles.translucentSurface, mobileLayout && webStyles.mobileMetricCard, estiloSuperficie]}
                 onPress={() => navigationRef.navigate('Metas')}
                 activeOpacity={0.8}
               >
@@ -512,7 +532,7 @@ function HomeWeb({
               </TouchableOpacity>
             </View>
 
-            <View style={[webStyles.panelCard, { backgroundColor: cores.card }]}>
+            <View dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined} style={[webStyles.panelCard, webStyles.translucentSurface, estiloSuperficie]}>
               <View style={webStyles.panelHeader}>
                 <View>
                   <Text style={[webStyles.panelTitle, { color: cores.texto }]}>Ritmo do mês</Text>
@@ -537,29 +557,29 @@ function HomeWeb({
               ))}
             </View>
 
-            <View style={[webStyles.goalPanel, { backgroundColor: '#EEE8F7' }]}>
-              <View style={webStyles.goalIcon}><Ionicons name="flag-outline" size={17} color="#7657AA" /></View>
+            <View dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined} style={[webStyles.goalPanel, webStyles.translucentSurface, { backgroundColor: temaEscuro ? 'rgba(115, 91, 148, 0.3)' : 'rgba(238, 232, 247, 0.78)', borderColor: temaEscuro ? 'rgba(181, 154, 222, 0.2)' : 'rgba(255, 255, 255, 0.88)' }]}>
+              <View style={[webStyles.goalIcon, temaEscuro && { backgroundColor: 'rgba(181,154,222,0.18)' }]}><Ionicons name="flag-outline" size={17} color={temaEscuro ? '#D6C5F3' : '#7657AA'} /></View>
               <View style={webStyles.goalBody}>
-                <Text style={webStyles.goalEyebrow}>META EM DESTAQUE</Text>
-                <Text style={[webStyles.goalTitle, { color: '#30283B' }]}>{primeiraMeta ? primeiraMeta.nome : 'Comece com uma meta'}</Text>
+                <Text style={[webStyles.goalEyebrow, temaEscuro && { color: '#C4AFE3' }]}>META EM DESTAQUE</Text>
+                <Text style={[webStyles.goalTitle, { color: temaEscuro ? cores.texto : '#30283B' }]}>{primeiraMeta ? primeiraMeta.nome : 'Comece com uma meta'}</Text>
                 {primeiraMeta ? (
                   <>
                     <View style={webStyles.goalProgressLine}>
-                      <Text style={webStyles.goalAmounts}>{formatarReal(primeiraMeta.valorGuardado)} de {formatarReal(primeiraMeta.valorObjetivo)}</Text>
-                      <Text style={webStyles.goalPercent}>{Math.round(progressoMeta * 100)}%</Text>
+                      <Text style={[webStyles.goalAmounts, temaEscuro && { color: '#D0C6DB' }]}>{formatarReal(primeiraMeta.valorGuardado)} de {formatarReal(primeiraMeta.valorObjetivo)}</Text>
+                      <Text style={[webStyles.goalPercent, temaEscuro && { color: '#D9C9F2' }]}>{Math.round(progressoMeta * 100)}%</Text>
                     </View>
                     <View style={webStyles.goalTrack}><View style={[webStyles.goalFill, { width: `${progressoMeta * 100}%` }]} /></View>
                   </>
-                ) : <Text style={webStyles.goalAmounts}>Crie uma meta para acompanhar seu progresso aqui.</Text>}
+                ) : <Text style={[webStyles.goalAmounts, temaEscuro && { color: '#D0C6DB' }]}>Crie uma meta para acompanhar seu progresso aqui.</Text>}
               </View>
-              <TouchableOpacity style={webStyles.goalLink} onPress={() => navigationRef.navigate('Metas')} activeOpacity={0.7}>
-                <Ionicons name="arrow-forward" size={16} color="#7657AA" />
+              <TouchableOpacity style={[webStyles.goalLink, temaEscuro && { backgroundColor: 'rgba(255,255,255,0.12)' }]} onPress={() => navigationRef.navigate('Metas')} activeOpacity={0.7}>
+                <Ionicons name="arrow-forward" size={16} color={temaEscuro ? '#D6C5F3' : '#7657AA'} />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={[webStyles.sideColumn, compactLayout && webStyles.columnCompact]}>
-            <View style={[webStyles.activityCard, { backgroundColor: cores.card }]}>
+            <View dataSet={Platform.OS === 'web' ? { cashGlass: 'true' } : undefined} style={[webStyles.activityCard, webStyles.translucentSurface, estiloSuperficie]}>
               <View style={webStyles.panelHeader}>
                 <View>
                   <Text style={[webStyles.panelTitle, { color: cores.texto }]}>Próximos compromissos</Text>
@@ -783,6 +803,7 @@ const styles = StyleSheet.create({
 });
 const webStyles = StyleSheet.create({
   container: { flex: 1 },
+  glassBackdrop: { position: 'relative', overflow: 'hidden' },
   scrollContent: { paddingHorizontal: 28, paddingTop: 20, paddingBottom: 40, maxWidth: 1480, width: '100%', alignSelf: 'center' },
   mobileScrollContent: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 92 },
   dashboardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
@@ -807,6 +828,14 @@ const webStyles = StyleSheet.create({
   mobileAddButton: { height: 36, paddingHorizontal: 10, gap: 4 },
   addButtonText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   mobileAddButtonText: { fontSize: 10 },
+  translucentSurface: {
+    borderWidth: 1,
+    shadowColor: '#4C3B63',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.045,
+    shadowRadius: 14,
+    elevation: 2,
+  },
   dashboardGrid: { flexDirection: 'row', alignItems: 'flex-start', gap: 18 },
   dashboardGridCompact: { flexDirection: 'column', alignItems: 'stretch', gap: 14 },
   mainColumn: { flex: 1.8, gap: 14, minWidth: 0 },

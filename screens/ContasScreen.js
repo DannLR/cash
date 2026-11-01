@@ -212,7 +212,7 @@ export default function ContasScreen() {
                   </View>
                   <View>
                     <Text style={[styles.itemNome, { color: cores.texto }]}>{item.nome}</Text>
-                    <Text style={[styles.itemSub, { color: cores.textoSecundario }]}>{item.origem === 'notificacao' ? `${dataParaDDMM(item.data)} • ${item.descricao || 'Compra por notificação'}` : item.formaPagamento === 'debito' && item.cartaoApelido ? `${dataParaDDMM(item.data)} • Débito ${item.cartaoApelido}` : dataParaDDMM(item.data)}</Text>
+                    <Text style={[styles.itemSub, { color: cores.textoSecundario }]}>{item.origem === 'notificacao' ? `${dataParaDDMM(item.data)} • ${item.descricao || 'Compra por notificação'}` : item.origem === 'comprovante' ? `${dataParaDDMM(item.data)} • ${item.descricao || 'Via comprovante'}` : item.formaPagamento === 'debito' && item.cartaoApelido ? `${dataParaDDMM(item.data)} • Débito ${item.cartaoApelido}` : dataParaDDMM(item.data)}</Text>
                   </View>
                 </View>
                 <Text style={[styles.itemValor, { color: cores.texto }]}>{formatarReal(item.valor)}</Text>
