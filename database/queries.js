@@ -230,7 +230,7 @@ export async function getDadosCartao(cartaoId, mesReferencia) {
   const { inicio, fim } = limitesDoMes(anoRef, mesRef - 1);
 
   const parcelasRaw = await db.getAllAsync(
-    `SELECT id, nome, valor, dia_vencimento, quantidade_parcelas, mes_inicio FROM contas_recorrentes WHERE cartao_id = ? AND tipo = 'parcela' AND status = 'ativa' ORDER BY dia_vencimento ASC`,
+    `SELECT id, nome, valor, dia_vencimento, tipo, quantidade_parcelas, mes_inicio FROM contas_recorrentes WHERE cartao_id = ? AND tipo = 'parcela' AND status = 'ativa' ORDER BY dia_vencimento ASC`,
     [cartaoId]
   );
   const assinaturasRaw = await db.getAllAsync(
