@@ -40,6 +40,11 @@ function referenciaAnterior(referencia) {
 }
 
 function referenciaDe(dataIso) {
+  // `mes_inicio` é uma referência de calendário. Ler um ISO com `new Date`
+  // pode deslocar o mês em fusos horários diferentes (por exemplo, dia 1
+  // à meia-noite UTC no Brasil). O prefixo YYYY-MM já contém a referência.
+  const partes = String(dataIso || '').match(/^(\d{4})-(\d{2})/);
+  if (partes) return `${partes[1]}-${partes[2]}`;
   const d = new Date(dataIso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
@@ -63,9 +68,11 @@ function contaVisivelNoMes(conta, referencia) {
     const criacaoRef = referenciaDe(conta.mes_inicio);
     if (referencia < criacaoRef) return false; // "YYYY-MM" compara certo como texto
   }
-  if (conta.tipo === 'parcela' && conta.quantidade_parcelas) {
+  if (conta.tipo === 'parcela') {
+    const quantidade = Number(conta.quantidade_parcelas);
+    if (!Number.isInteger(quantidade) || quantidade < 1) return false;
     const parcelaAtual = calcularParcelaAtual(conta.mes_inicio, conta.quantidade_parcelas, referencia);
-    if (parcelaAtual && parcelaAtual > conta.quantidade_parcelas) return false;
+    if (!parcelaAtual || parcelaAtual < 1 || parcelaAtual > quantidade) return false;
   }
   return true;
 }
@@ -753,7 +760,7 @@ export async function salvarContaRecorrente({ tipo, nome, valor, diaVencimento, 
 }
 
 // Insere uma nova movimentação no banco.
-export async function salvarMovimentacao({ tipo, valor, categoriaNome, data, formaPagamento, cartaoId = null, descricao = null }) {
+export async function salvarMovimentacao({ tipo, valor, categoriaNome, data, formaPagamento, cartaoId = null, descricao = null, origem = 'avulsa' }) {
   const db = await getDb();
 
   let categoria = await db.getFirstAsync(
@@ -774,7 +781,7 @@ export async function salvarMovimentacao({ tipo, valor, categoriaNome, data, for
   const id = gerarIdLocal();
   await db.runAsync(
     'INSERT INTO movimentacoes (id, usuario_id, categoria_id, tipo, valor, data, forma_pagamento, origem, cartao_id, descricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [id, USUARIO_ID, categoriaId, tipo, valor, data, formaPagamento, descricao ? 'notificacao' : 'avulsa', cartaoId, descricao]
+    [id, USUARIO_ID, categoriaId, tipo, valor, data, formaPagamento, origem, cartaoId, descricao]
   );
 }
 

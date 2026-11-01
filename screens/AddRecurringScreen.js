@@ -80,6 +80,7 @@ export default function AddRecurringScreen({ navigation, route }) {
         categoriaNome: nome.trim(),
         cartaoId,
         quantidadeParcelas: tipo === 'parcela' ? parseInt(quantidadeParcelas, 10) : null,
+        mesInicio: tipo === 'parcela' ? route.params?.mesInicio || null : null,
       });
       navigation.goBack();
     } catch (erro) {

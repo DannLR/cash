@@ -131,7 +131,11 @@ export default function CardDetailsScreen({ route, navigation }) {
 
   function abrirNovaConta(tipoInicial) {
     setMostrarOpcoesConta(false);
-    navigation.navigate('AdicionarContaRecorrente', { cartaoId: cartao.id, tipoInicial });
+    navigation.navigate('AdicionarContaRecorrente', {
+      cartaoId: cartao.id,
+      tipoInicial,
+      mesInicio: `${referencia}-01`,
+    });
   }
 
   function abrirNovoDebito() {
