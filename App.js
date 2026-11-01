@@ -197,11 +197,13 @@ function Tabs({ onAbrirMenu }) {
         // A área reservada pelo navegador da barra também precisa acompanhar
         // o fundo do tema; transparente deixava aparecer o branco do documento.
         tabBarStyle: web ? { position: 'absolute', height: width < 520 ? 76 : 82, backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0 } : {
-          backgroundColor: cores.card,
-          borderTopColor: cores.borda,
+          position: 'absolute',
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
           height: 64,
           paddingTop: 7,
           paddingBottom: 7,
+          elevation: 0,
         },
         tabBarIcon: ({ color, size }) =>
           ICONES_ABAS[route.name] ? (
